@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const webcamEnabled = webcamToggle.classList.contains('active');
         if (webcamEnabled) {
           console.log('📹 Webcam enabled but no detections yet, showing loading state...');
-          recentEmotions.innerHTML = '<div class="no-data">🔄 Starting webcam...</div>';
+          recentEmotions.innerHTML = '<div class="no-data">🔄 Analyzing video feed...</div>';
         } else {
           console.log('❌ Webcam not enabled, showing no-data message');
           updateRecentEmotions([]);
