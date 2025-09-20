@@ -15,7 +15,6 @@ interface TimeRangeData {
 
 interface ProductivityDashboardProps {
   timeRangeData: TimeRangeData[];
-  isDarkMode?: boolean;
 }
 
 interface Insight {
@@ -25,8 +24,7 @@ interface Insight {
 }
 
 const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({ 
-  timeRangeData, 
-  isDarkMode = false 
+  timeRangeData
 }) => {
   const [hoveredPeriod, setHoveredPeriod] = useState<string | null>(null);
   // Generate insights from the data
