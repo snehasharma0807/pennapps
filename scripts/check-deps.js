@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' });
+
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -15,7 +18,9 @@ if (!fs.existsSync('package.json')) {
 // Check for required environment variables
 const requiredEnvVars = [
   'MONGODB_URI',
-  'AUTH0_DOMAIN', 
+  'AUTH0_SECRET',
+  'AUTH0_ISSUER_BASE_URL',
+  'AUTH0_BASE_URL',
   'AUTH0_CLIENT_ID',
   'AUTH0_CLIENT_SECRET',
   'GEMINI_API_KEY'
@@ -36,7 +41,9 @@ for (const envVar of requiredEnvVars) {
 if (envVarsMissing) {
   console.log('\n💡 Create a .env.local file with the following variables:');
   console.log('MONGODB_URI=your_mongodb_connection_string');
-  console.log('AUTH0_DOMAIN=your_auth0_domain');
+  console.log('AUTH0_SECRET=your_auth0_secret');
+  console.log('AUTH0_ISSUER_BASE_URL=https://your_auth0_domain.auth0.com');
+  console.log('AUTH0_BASE_URL=http://localhost:3000');
   console.log('AUTH0_CLIENT_ID=your_auth0_client_id');
   console.log('AUTH0_CLIENT_SECRET=your_auth0_client_secret');
   console.log('GEMINI_API_KEY=your_gemini_api_key');

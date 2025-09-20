@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import EmotionEvent from '@/models/EmotionEvent';
 
 // GET /api/user - Get user profile and settings
 export async function GET() {
@@ -23,7 +24,12 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ user }, {
+      headers: {
+        'Cache-Control': 'private, max-age=60', // Cache for 1 minute
+        'X-Response-Time': Date.now().toString()
+      }
+    });
   } catch (error) {
     console.error('Error fetching user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -55,6 +61,34 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ user });
   } catch (error) {
     console.error('Error updating user:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// DELETE /api/user - Delete user account and all associated data
+export async function DELETE() {
+  try {
+    const session = await getSession();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+
+    const user = await User.findOne({ auth0Id: session.user.sub });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Delete all emotion events associated with this user
+    await EmotionEvent.deleteMany({ userId: user._id });
+
+    // Delete the user account
+    await User.findByIdAndDelete(user._id);
+
+    return NextResponse.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

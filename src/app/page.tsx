@@ -4,11 +4,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, Brain, BarChart3, Bell } from 'lucide-react';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 export default function LandingPage() {
-  // Temporarily disabled Auth0 for demo
-  const user = null;
-  const isLoading = false;
+  const { user, error, isLoading } = useUser();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -24,17 +23,23 @@ export default function LandingPage() {
             {isLoading ? (
               <div className="animate-pulse bg-gray-200 h-8 w-20 rounded"></div>
             ) : user ? (
-              <Link href="/dashboard">
-                <Button variant="outline">Dashboard</Button>
-              </Link>
+              <>
+                <span className="text-sm text-gray-600">Welcome, {user.name || user.email}</span>
+                <Link href="/dashboard">
+                  <Button variant="outline">Dashboard</Button>
+                </Link>
+                <a href="/api/auth/logout">
+                  <Button variant="ghost">Logout</Button>
+                </a>
+              </>
             ) : (
               <>
-                <Link href="/auth">
+                <a href="/api/auth/login">
                   <Button variant="ghost">Login</Button>
-                </Link>
-                <Link href="/auth">
+                </a>
+                <a href="/api/auth/login">
                   <Button>Get Started</Button>
-                </Link>
+                </a>
               </>
             )}
           </div>
@@ -54,11 +59,19 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link href="/auth">
-              <Button size="lg" className="text-lg px-8 py-4">
-                Start Free Trial
-              </Button>
-            </Link>
+            {user ? (
+              <Link href="/dashboard">
+                <Button size="lg" className="text-lg px-8 py-4">
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <a href="/api/auth/login">
+                <Button size="lg" className="text-lg px-8 py-4">
+                  Start Free Trial
+                </Button>
+              </a>
+            )}
             <Link href="/extension">
               <Button size="lg" variant="outline" className="text-lg px-8 py-4">
                 Download Chrome Extension
