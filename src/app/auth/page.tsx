@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, User, Mail, Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import Logo from '@/components/Logo';
+import LogoButton from '@/components/LogoButton';
+import { motion } from 'framer-motion';
 // import { useUser } from '@auth0/nextjs-auth0/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -44,32 +45,231 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-50 to-green-100 items-center justify-center p-12">
-        <div className="text-center max-w-md">
-          <div className="mb-8">
-            <Logo variant="intention-ai" />
-          </div>
-          <h1 className="text-4xl font-bold mb-4" style={{color: '#2c423f'}}>
-            Welcome to intention.ai
-          </h1>
-          <p className="text-xl mb-8" style={{color: '#93a57b'}}>
+      {/* Left Panel - Branding with Animated Background */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center p-12" style={{backgroundColor: '#bfcc94'}}>
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0">
+          {/* Gradient Background adapted for green */}
+          <div className="absolute inset-0 bg-gradient-to-br from-green-100 via-green-50 to-green-200"></div>
+          
+          {/* Floating Blobs */}
+          <motion.div
+            className="absolute top-20 left-20 w-32 h-32 rounded-full opacity-20"
+            style={{background: 'linear-gradient(135deg, #677d61, #93a57b)'}}
+            animate={{
+              y: [0, -20, 0],
+              x: [0, 10, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 6,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div
+            className="absolute top-40 right-32 w-24 h-24 rounded-full opacity-15"
+            style={{background: 'linear-gradient(135deg, #fffd7a, #93a57b)'}}
+            animate={{
+              y: [0, 15, 0],
+              x: [0, -15, 0],
+              scale: [1, 0.9, 1],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 1
+            }}
+          />
+          <motion.div
+            className="absolute bottom-32 left-16 w-20 h-20 rounded-full opacity-10"
+            style={{background: 'linear-gradient(135deg, #93a57b, #677d61)'}}
+            animate={{
+              y: [0, -25, 0],
+              x: [0, 20, 0],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+          
+          {/* Additional smaller floating elements */}
+          <motion.div
+            className="absolute top-60 right-16 w-16 h-16 rounded-full opacity-8"
+            style={{background: 'linear-gradient(135deg, #fffd7a, #677d61)'}}
+            animate={{
+              y: [0, -15, 0],
+              x: [0, -10, 0],
+              scale: [1, 0.8, 1],
+            }}
+            transition={{
+              duration: 7,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.5
+            }}
+          />
+          <motion.div
+            className="absolute bottom-60 right-20 w-12 h-12 rounded-full opacity-12"
+            style={{background: 'linear-gradient(135deg, #677d61, #fffd7a)'}}
+            animate={{
+              y: [0, 20, 0],
+              x: [0, 15, 0],
+              scale: [1, 1.3, 1],
+            }}
+            transition={{
+              duration: 9,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 1.5
+            }}
+          />
+          
+          {/* Flowing Wave Pattern */}
+          <motion.div
+            className="absolute bottom-0 left-0 w-full h-32"
+            style={{
+              background: 'linear-gradient(45deg, transparent 30%, rgba(103, 125, 97, 0.1) 50%, transparent 70%)',
+              clipPath: 'polygon(0 100%, 100% 0%, 100% 100%)'
+            }}
+            animate={{
+              x: ['-100%', '100%'],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+          
+          {/* Subtle particle effects */}
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 rounded-full opacity-20"
+              animate={{
+                y: [0, -100, 0],
+                x: [0, Math.random() * 20 - 10, 0],
+                opacity: [0, 0.3, 0],
+              }}
+              transition={{
+                duration: 8 + Math.random() * 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: Math.random() * 5,
+              }}
+              style={{
+                left: `${20 + Math.random() * 60}%`,
+                top: `${60 + Math.random() * 30}%`,
+                background: '#677d61'
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 text-center max-w-md">
+          <motion.div 
+            className="mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            whileHover={{ scale: 1.05 }}
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-green-400 rounded-lg blur-lg opacity-20 scale-110"></div>
+              <LogoButton size="md" />
+            </div>
+          </motion.div>
+          
+          <motion.h1 
+            className="text-4xl font-bold mb-4" 
+            style={{color: '#2c423f'}}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            whileHover={{ scale: 1.02 }}
+          >
+            <span 
+              className="bg-gradient-to-r from-green-600 via-green-500 to-blue-600 bg-clip-text text-transparent hover:from-green-700 hover:to-blue-700 transition-all duration-500 cursor-default"
+              style={{
+                background: 'linear-gradient(135deg, #677d61, #93a57b, #fffd7a)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
+            >
+              intention.ai
+            </span>
+          </motion.h1>
+          
+          <motion.p 
+            className="text-xl mb-8" 
+            style={{color: '#93a57b'}}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
             Transform your productivity with AI-powered emotion detection and personalized insights.
-          </p>
-          <div className="space-y-4 text-left">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 rounded-full" style={{backgroundColor: '#677d61'}}></div>
-              <span style={{color: '#2c423f'}}>Real-time emotion monitoring</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 rounded-full" style={{backgroundColor: '#677d61'}}></div>
-              <span style={{color: '#2c423f'}}>AI-powered productivity suggestions</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 rounded-full" style={{backgroundColor: '#677d61'}}></div>
-              <span style={{color: '#2c423f'}}>Privacy-focused webcam analysis</span>
-            </div>
-          </div>
+          </motion.p>
+          
+          <motion.div 
+            className="space-y-4 text-left"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+          >
+            <motion.div 
+              className="flex items-center space-x-3 group cursor-pointer"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 1.0 }}
+              whileHover={{ x: 5, scale: 1.02 }}
+            >
+              <motion.div 
+                className="w-2 h-2 rounded-full" 
+                style={{backgroundColor: '#677d61'}}
+                whileHover={{ scale: 1.5, backgroundColor: '#93a57b' }}
+                transition={{ duration: 0.2 }}
+              ></motion.div>
+              <span style={{color: '#2c423f'}} className="group-hover:text-green-700 transition-colors duration-200">Real-time emotion monitoring</span>
+            </motion.div>
+            <motion.div 
+              className="flex items-center space-x-3 group cursor-pointer"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 1.2 }}
+              whileHover={{ x: 5, scale: 1.02 }}
+            >
+              <motion.div 
+                className="w-2 h-2 rounded-full" 
+                style={{backgroundColor: '#677d61'}}
+                whileHover={{ scale: 1.5, backgroundColor: '#93a57b' }}
+                transition={{ duration: 0.2 }}
+              ></motion.div>
+              <span style={{color: '#2c423f'}} className="group-hover:text-green-700 transition-colors duration-200">AI-powered productivity suggestions</span>
+            </motion.div>
+            <motion.div 
+              className="flex items-center space-x-3 group cursor-pointer"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 1.4 }}
+              whileHover={{ x: 5, scale: 1.02 }}
+            >
+              <motion.div 
+                className="w-2 h-2 rounded-full" 
+                style={{backgroundColor: '#677d61'}}
+                whileHover={{ scale: 1.5, backgroundColor: '#93a57b' }}
+                transition={{ duration: 0.2 }}
+              ></motion.div>
+              <span style={{color: '#2c423f'}} className="group-hover:text-green-700 transition-colors duration-200">Privacy-focused webcam analysis</span>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
 
@@ -79,7 +279,7 @@ export default function AuthPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="mb-6">
-              <Logo variant="intention-ai" />
+              <LogoButton size="md" />
             </div>
             <h2 className="text-3xl font-bold mb-2" style={{color: '#2c423f'}}>
               {isLogin ? 'Welcome back' : 'Get started'}
@@ -151,7 +351,6 @@ export default function AuthPage() {
                     className="w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
                     style={{
                       borderColor: '#e5e7eb',
-                      '--tw-ring-color': '#bfcc94',
                       backgroundColor: '#f9fafb'
                     }}
                     placeholder="Enter your full name"
@@ -177,7 +376,6 @@ export default function AuthPage() {
                   className="w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
                   style={{
                     borderColor: '#e5e7eb',
-                    '--tw-ring-color': '#bfcc94',
                     backgroundColor: '#f9fafb'
                   }}
                   placeholder="Enter your email"
@@ -202,7 +400,6 @@ export default function AuthPage() {
                   className="w-full pl-12 pr-14 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
                   style={{
                     borderColor: '#e5e7eb',
-                    '--tw-ring-color': '#bfcc94',
                     backgroundColor: '#f9fafb'
                   }}
                   placeholder="Enter your password"
@@ -236,7 +433,6 @@ export default function AuthPage() {
                     className="w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
                     style={{
                       borderColor: '#e5e7eb',
-                      '--tw-ring-color': '#bfcc94',
                       backgroundColor: '#f9fafb'
                     }}
                     placeholder="Confirm your password"

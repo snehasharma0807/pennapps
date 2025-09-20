@@ -262,3 +262,74 @@
   background-color: #000000;
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
 }
+
+/* Enhanced animations for the new landing page */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(103, 125, 97, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(103, 125, 97, 0.6); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Mobile responsiveness improvements */
+@media (max-width: 768px) {
+  .hero-headline {
+    font-size: 2.5rem !important;
+    line-height: 1.2 !important;
+  }
+  
+  .hero-tagline {
+    font-size: 1.125rem !important;
+  }
+  
+  .feature-icons {
+    gap: 1rem !important;
+  }
+  
+  .feature-icon {
+    width: 3rem !important;
+    height: 3rem !important;
+  }
+  
+  .stats-grid {
+    gap: 1rem !important;
+  }
+  
+  .stats-number {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Smooth scrolling and performance optimizations */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Custom gradient text animation */
+.gradient-text {
+  background: linear-gradient(135deg, #677d61, #93a57b, #fffd7a);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Enhanced hover effects */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}

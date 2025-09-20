@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import Logo from '@/components/Logo';
+import LogoButton from '@/components/LogoButton';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -32,7 +32,7 @@ export default function OAuthPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-50 to-green-100 items-center justify-center p-12">
         <div className="text-center max-w-md">
           <div className="mb-8">
-            <Logo variant="intention-ai" />
+            <LogoButton size="md" />
           </div>
           <h1 className="text-4xl font-bold mb-4" style={{color: '#2c423f'}}>
             Welcome to intention.ai
@@ -63,7 +63,7 @@ export default function OAuthPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="mb-6">
-              <Logo variant="intention-ai" />
+              <LogoButton size="md" />
             </div>
             <h2 className="text-3xl font-bold mb-2" style={{color: '#2c423f'}}>
               Sign in with Google
