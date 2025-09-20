@@ -1,4 +1,6 @@
 // Background service worker for Chrome extension
+importScripts('config.js');
+
 let webcamStream = null;
 let emotionDetectionInterval = null;
 let lastNotificationTime = 0;
@@ -201,7 +203,10 @@ async function handleEmotionDetected(emotion, confidence = 0.8, timestamp = null
 // Send emotion data to API
 async function sendEmotionToAPI(emotion, confidence) {
   try {
-    const response = await fetch('http://localhost:3000/api/emotions', {
+    // Use the configuration system to get the correct API URL
+    const apiUrl = CONFIG.getUrl(CONFIG.endpoints.api.emotions);
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -282,6 +287,7 @@ function showTestNotification() {
 
 // Handle notification clicks
 chrome.notifications.onClicked.addListener((notificationId) => {
-  chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
+  const dashboardUrl = CONFIG.getUrl(CONFIG.endpoints.dashboard);
+  chrome.tabs.create({ url: dashboardUrl });
   chrome.notifications.clear(notificationId);
 });
