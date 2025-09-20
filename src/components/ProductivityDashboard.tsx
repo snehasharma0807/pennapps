@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TrendingUp, AlertTriangle, Lightbulb, CheckCircle } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface TimeRangeData {
   name: string;
@@ -129,11 +130,11 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
     
     switch (type) {
       case 'positive':
-        return `${baseStyles} ${isDarkMode ? 'bg-green-900/20 border border-green-800' : 'bg-green-50 border border-green-200'}`;
+        return `${baseStyles} bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800`;
       case 'warning':
-        return `${baseStyles} ${isDarkMode ? 'bg-yellow-900/20 border border-yellow-800' : 'bg-yellow-50 border border-yellow-200'}`;
+        return `${baseStyles} bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800`;
       case 'tip':
-        return `${baseStyles} ${isDarkMode ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`;
+        return `${baseStyles} bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800`;
       default:
         return baseStyles;
     }
@@ -142,13 +143,13 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
   const getInsightIconColor = (type: 'positive' | 'warning' | 'tip') => {
     switch (type) {
       case 'positive':
-        return 'text-green-600';
+        return 'text-green-600 dark:text-green-400';
       case 'warning':
-        return 'text-yellow-600';
+        return 'text-yellow-600 dark:text-yellow-400';
       case 'tip':
-        return 'text-blue-600';
+        return 'text-blue-600 dark:text-blue-400';
       default:
-        return 'text-gray-600';
+        return 'text-gray-600 dark:text-gray-400';
     }
   };
   
@@ -156,7 +157,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
     <div className="grid lg:grid-cols-2 gap-8">
       {/* Heatmap Chart */}
       <div>
-        <h3 className="text-2xl font-bold mb-6" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
+        <h3 className="text-2xl font-bold mb-6 text-foreground">
           Productivity Heatmap
         </h3>
         
@@ -181,20 +182,20 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                 onMouseLeave={() => setHoveredPeriod(null)}
               >
                 <div className="flex justify-between items-center">
-                  <h4 className={`font-semibold transition-all duration-300 ${
+                  <h4 className={`font-semibold transition-all duration-300 text-foreground ${
                     isHovered ? 'text-lg' : 'text-base'
-                  }`} style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
+                  }`}>
                     {range.name}
                   </h4>
-                  <span className="text-sm transition-all duration-300" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
+                  <span className="text-sm transition-all duration-300 text-muted-foreground">
                     {range.period}
                   </span>
                 </div>
                 
                 {/* Heatmap Bar */}
-                <div className={`relative rounded-lg overflow-hidden shadow-lg transition-all duration-500 ${
+                <div className={`relative rounded-lg overflow-hidden shadow-lg transition-all duration-500 bg-muted ${
                   isHovered ? 'h-16 shadow-2xl' : 'h-12'
-                }`} style={{backgroundColor: isDarkMode ? '#374151' : '#f3f4f6'}}>
+                }`}>
                   {/* Focused Segment */}
                   <div 
                     className="absolute left-0 top-0 h-full flex items-center justify-center text-white text-xs font-medium transition-all duration-500 hover:opacity-90"
@@ -235,9 +236,9 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                 </div>
                 
                 {/* Mini Legend */}
-                <div className={`flex justify-between text-xs transition-all duration-300 ${
+                <div className={`flex justify-between text-xs transition-all duration-300 text-muted-foreground ${
                   isHovered ? 'opacity-100' : 'opacity-70'
-                }`} style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
+                }`}>
                   <span className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded transition-all duration-300" style={{backgroundColor: '#677d61'}}></div>
                     <span>Focused: {focused}h</span>
@@ -259,7 +260,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
       
       {/* Insights Panel */}
       <div>
-        <h3 className="text-2xl font-bold mb-6" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
+        <h3 className="text-2xl font-bold mb-6 text-foreground">
           Your Productivity Highlights
         </h3>
         
@@ -269,7 +270,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
               <div className={`flex-shrink-0 ${getInsightIconColor(insight.type)}`}>
                 {insight.icon}
               </div>
-              <p className="text-sm font-medium" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
+              <p className="text-sm font-medium text-foreground">
                 {insight.text}
               </p>
             </div>
@@ -277,32 +278,32 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
         </div>
         
         {/* Summary Stats */}
-        <div className="mt-8 p-8 rounded-lg" style={{backgroundColor: isDarkMode ? '#2d2d2d' : '#f8f9fa'}}>
-          <h4 className="text-xl font-semibold mb-8 text-center" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
+        <div className="mt-8 p-8 rounded-lg bg-card border border-border">
+          <h4 className="text-xl font-semibold mb-8 text-center text-foreground">
             Quick Summary
           </h4>
           <div className="grid grid-cols-3 gap-8 text-center">
             <div className="transition-all duration-300 hover:scale-110">
-              <div className="text-4xl font-bold mb-2" style={{color: '#677d61'}}>
+              <div className="text-4xl font-bold mb-2 text-primary">
                 {timeRangeData.reduce((sum, range) => sum + range.emotions.focused, 0)}
               </div>
-              <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
+              <div className="text-sm font-medium text-muted-foreground">
                 Focused Hours
               </div>
             </div>
             <div className="transition-all duration-300 hover:scale-110">
-              <div className="text-4xl font-bold mb-2" style={{color: '#93a57b'}}>
+              <div className="text-4xl font-bold mb-2 text-muted">
                 {timeRangeData.reduce((sum, range) => sum + range.emotions.tired, 0)}
               </div>
-              <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
+              <div className="text-sm font-medium text-muted-foreground">
                 Tired Hours
               </div>
             </div>
             <div className="transition-all duration-300 hover:scale-110">
-              <div className="text-4xl font-bold mb-2" style={{color: '#fffd7a'}}>
+              <div className="text-4xl font-bold mb-2 text-yellow-500">
                 {timeRangeData.reduce((sum, range) => sum + range.emotions.stressed, 0)}
               </div>
-              <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
+              <div className="text-sm font-medium text-muted-foreground">
                 Stressed Hours
               </div>
             </div>

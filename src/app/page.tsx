@@ -6,6 +6,7 @@ import { Camera, Brain, BarChart3, Bell } from 'lucide-react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function LandingPage() {
   const { user, error, isLoading } = useUser();
@@ -44,6 +45,7 @@ export default function LandingPage() {
             <Logo variant="intention-ai" />
           </Link>
           <div className="flex items-center space-x-4">
+            <ThemeToggle />
             {isLoading ? (
               <div className="animate-pulse bg-gray-200 h-8 w-20 rounded"></div>
             ) : user ? (
