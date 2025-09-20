@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Icons</title>
+</head>
+<body>
+    <canvas id="icon16" width="16" height="16"></canvas>
+    <canvas id="icon48" width="48" height="48"></canvas>
+    <canvas id="icon128" width="128" height="128"></canvas>
+    
+    <script>
+        function createIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Create gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#4f46e5');
+            gradient.addColorStop(1, '#7c3aed');
+            
+            // Fill background
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Add rounded corners
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, size * 0.2);
+            ctx.fill();
+            
+            // Reset composite operation
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Add brain/lightbulb icon
+            ctx.fillStyle = 'white';
+            ctx.font = `${size * 0.6}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🧠', size / 2, size / 2);
+            
+            // Download the icon
+            const link = document.createElement('a');
+            link.download = `icon${size}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Create all icons when page loads
+        window.onload = function() {
+            createIcon('icon16', 16);
+            setTimeout(() => createIcon('icon48', 48), 100);
+            setTimeout(() => createIcon('icon128', 128), 200);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "WorkFlow AI",
+  "version": "1.0",
+  "description": "Detects focus, stress, and tiredness via webcam and suggests productivity improvements.",
+  "permissions": [
+    "storage",
+    "notifications",
+    "activeTab",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "WorkFlow AI"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["face-detection.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  }
+}

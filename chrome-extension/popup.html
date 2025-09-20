@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WorkFlow AI</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      width: 320px; 
+      background-color: #f9fafb; 
+      color: #374151;
+    }
+    .container { padding: 16px; }
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .space-x-2 > * + * { margin-left: 8px; }
+    .space-x-4 > * + * { margin-left: 16px; }
+    .space-y-3 > * + * { margin-top: 12px; }
+    .mb-4 { margin-bottom: 16px; }
+    .mb-2 { margin-bottom: 8px; }
+    .w-8 { width: 32px; }
+    .h-8 { height: 32px; }
+    .bg-indigo-600 { background-color: #4f46e5; }
+    .rounded-full { border-radius: 9999px; }
+    .text-white { color: white; }
+    .text-lg { font-size: 18px; }
+    .text-sm { font-size: 14px; }
+    .text-xs { font-size: 12px; }
+    .font-bold { font-weight: 700; }
+    .font-medium { font-weight: 500; }
+    .bg-white { background-color: white; }
+    .rounded-lg { border-radius: 8px; }
+    .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+    .border { border: 1px solid #e5e7eb; }
+    .p-4 { padding: 16px; }
+    .p-3 { padding: 12px; }
+    .justify-between { justify-content: space-between; }
+    .w-full { width: 100%; }
+    .py-2 { padding-top: 8px; padding-bottom: 8px; }
+    .px-4 { padding-left: 16px; padding-right: 16px; }
+    .rounded-lg { border-radius: 8px; }
+    .text-center { text-align: center; }
+    .bg-indigo-600 { background-color: #4f46e5; }
+    .bg-gray-200 { background-color: #e5e7eb; }
+    .bg-gray-50 { background-color: #f9fafb; }
+    .text-gray-700 { color: #374151; }
+    .text-gray-500 { color: #6b7280; }
+    .text-gray-600 { color: #4b5563; }
+    .hover\:bg-indigo-700:hover { background-color: #3730a3; }
+    .hover\:bg-gray-300:hover { background-color: #d1d5db; }
+    .transition-colors { transition: background-color 0.15s ease-in-out; }
+    button {
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      transition: background-color 0.15s ease-in-out;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background-color: #4f46e5;
+      color: white;
+    }
+    .btn-primary:hover { background-color: #3730a3; }
+    .btn-secondary {
+      background-color: #e5e7eb;
+      color: #374151;
+    }
+    .btn-secondary:hover { background-color: #d1d5db; }
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background-color: #e5e7eb;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background-color 0.15s ease-in-out;
+    }
+    .toggle.active { background-color: #4f46e5; }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background-color: white;
+      border-radius: 50%;
+      transition: transform 0.15s ease-in-out;
+    }
+    .toggle.active::after { transform: translateX(20px); }
+    select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background-color: white;
+      font-size: 14px;
+    }
+    select:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .status-active { background-color: #10b981; }
+    .status-inactive { background-color: #ef4444; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="flex items-center space-x-2 mb-4">
+      <div class="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
+        <span class="text-white text-lg">🧠</span>
+      </div>
+      <h1 class="text-lg font-bold text-gray-900">WorkFlow AI</h1>
+    </div>
+
+    <!-- Status Card -->
+    <div class="bg-white rounded-lg shadow-sm border p-4 mb-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-gray-700">Status</span>
+        <div id="status-indicator" class="flex items-center space-x-1">
+          <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+          <span class="text-xs text-gray-500">Inactive</span>
+        </div>
+      </div>
+      <div class="text-xs text-gray-600">
+        <div>Webcam: <span id="webcam-status">Not active</span></div>
+        <div>Last detection: <span id="last-detection">Never</span></div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="space-y-3 mb-4">
+      <!-- Webcam Toggle -->
+      <div class="bg-white rounded-lg shadow-sm border p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-medium text-gray-700">Webcam Monitoring</div>
+            <div class="text-xs text-gray-500">Detect emotions via webcam</div>
+          </div>
+          <div class="toggle" id="webcam-toggle" onclick="toggleWebcam()"></div>
+        </div>
+      </div>
+
+      <!-- Notifications Toggle -->
+      <div class="bg-white rounded-lg shadow-sm border p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-medium text-gray-700">Notifications</div>
+            <div class="text-xs text-gray-500">Get AI suggestions</div>
+          </div>
+          <div class="toggle active" id="notifications-toggle" onclick="toggleNotifications()"></div>
+        </div>
+      </div>
+
+      <!-- Notification Interval -->
+      <div class="bg-white rounded-lg shadow-sm border p-4">
+        <div class="text-sm font-medium text-gray-700 mb-2">Notification Interval</div>
+        <select id="notification-interval" class="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="5">5 minutes</option>
+          <option value="10">10 minutes</option>
+          <option value="15" selected>15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60">1 hour</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="space-y-3">
+      <button id="open-dashboard" class="w-full btn-primary py-2 px-4 rounded-lg text-sm font-medium">
+        Open Dashboard
+      </button>
+      <button id="test-notification" class="w-full btn-secondary py-2 px-4 rounded-lg text-sm font-medium">
+        Test Notification
+      </button>
+    </div>
+
+    <!-- Recent Emotions -->
+    <div class="mt-4 bg-white rounded-lg shadow-sm border p-4">
+      <div class="text-sm font-medium text-gray-700 mb-2">Recent Emotions</div>
+      <div id="recent-emotions" class="space-y-1">
+        <div class="text-xs text-gray-500">No recent data</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
