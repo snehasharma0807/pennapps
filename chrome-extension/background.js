@@ -3,6 +3,11 @@ let webcamStream = null;
 let emotionDetectionInterval = null;
 let lastNotificationTime = 0;
 let emotionHistory = [];
+let emotionDetector = null;
+let isDetecting = false;
+let hourlySummaryInterval = null;
+let currentHourEmotions = [];
+let hourlyStartTime = Date.now();
 
 // Initialize on startup
 chrome.runtime.onStartup.addListener(() => {
@@ -41,6 +46,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'emotionDetected':
       handleEmotionDetected(message.emotion, message.confidence, message.timestamp);
       break;
+    case 'getStatus':
+      sendResponse({
+        isDetecting: isDetecting,
+        lastDetection: emotionHistory.length > 0 ? emotionHistory[emotionHistory.length - 1] : null,
+        totalDetections: emotionHistory.length,
+        hourlyCount: currentHourEmotions.length
+      });
+      break;
   }
 });
 
@@ -58,15 +71,14 @@ async function startWebcamMonitoring() {
 
     console.log('Webcam access granted');
     
-    // Inject content script to start face detection
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) {
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        function: startFaceDetection,
-        args: [webcamStream]
-      });
-    }
+    // Initialize emotion detector
+    await initializeEmotionDetector();
+    
+    // Start continuous detection
+    startContinuousDetection();
+    
+    // Start hourly summary timer
+    startHourlySummary();
     
     console.log('Webcam monitoring started');
   } catch (error) {
@@ -92,7 +104,150 @@ function stopWebcamMonitoring() {
     emotionDetectionInterval = null;
   }
 
+  if (hourlySummaryInterval) {
+    clearInterval(hourlySummaryInterval);
+    hourlySummaryInterval = null;
+  }
+
+  isDetecting = false;
+  emotionDetector = null;
+
   console.log('Webcam monitoring stopped');
+}
+
+// Initialize emotion detector
+async function initializeEmotionDetector() {
+  try {
+    // Load face-api.js and create detector
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: () => {
+          // Load face-api.js if not already loaded
+          if (typeof faceapi === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js';
+            document.head.appendChild(script);
+          }
+          
+          // Create global emotion detector
+          window.emotionDetector = new EmotionDetector();
+          window.emotionDetector.initialize();
+        }
+      });
+    }
+    console.log('Emotion detector initialized');
+  } catch (error) {
+    console.error('Failed to initialize emotion detector:', error);
+  }
+}
+
+// Start continuous emotion detection
+function startContinuousDetection() {
+  if (emotionDetectionInterval) {
+    clearInterval(emotionDetectionInterval);
+  }
+
+  isDetecting = true;
+  
+  emotionDetectionInterval = setInterval(async () => {
+    if (!isDetecting) return;
+    
+    try {
+      const emotion = await detectEmotionFromTab();
+      if (emotion) {
+        await handleEmotionDetected(emotion.emotion, emotion.confidence, new Date().toISOString());
+      }
+    } catch (error) {
+      console.error('Continuous detection error:', error);
+    }
+  }, 5000); // Check every 5 seconds
+
+  console.log('Continuous emotion detection started');
+}
+
+// Detect emotion from active tab
+async function detectEmotionFromTab() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: () => {
+          if (window.emotionDetector && window.emotionDetector.isDetecting) {
+            return window.emotionDetector.detectEmotion();
+          }
+          return null;
+        }
+      });
+      
+      if (results && results[0] && results[0].result) {
+        return results[0].result;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error detecting emotion from tab:', error);
+    return null;
+  }
+}
+
+// Start hourly summary timer
+function startHourlySummary() {
+  if (hourlySummaryInterval) {
+    clearInterval(hourlySummaryInterval);
+  }
+
+  // Reset hourly tracking
+  currentHourEmotions = [];
+  hourlyStartTime = Date.now();
+
+  // Set up hourly summary
+  hourlySummaryInterval = setInterval(() => {
+    generateHourlySummary();
+  }, 60 * 60 * 1000); // Every 60 minutes
+
+  console.log('Hourly summary timer started');
+}
+
+// Generate hourly emotion summary
+function generateHourlySummary() {
+  if (currentHourEmotions.length === 0) {
+    console.log('No emotions detected in the past hour');
+    return;
+  }
+
+  // Count emotions
+  const emotionCounts = {};
+  currentHourEmotions.forEach(emotion => {
+    emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
+  });
+
+  // Find most common emotion
+  const mostCommonEmotion = Object.keys(emotionCounts).reduce((a, b) => 
+    emotionCounts[a] > emotionCounts[b] ? a : b
+  );
+
+  const totalDetections = currentHourEmotions.length;
+  const percentage = ((emotionCounts[mostCommonEmotion] / totalDetections) * 100).toFixed(1);
+
+  // Log hourly summary
+  console.log('=== HOURLY EMOTION SUMMARY ===');
+  console.log(`Time: ${new Date().toLocaleString()}`);
+  console.log(`Total detections: ${totalDetections}`);
+  console.log(`Most common state: ${mostCommonEmotion.toUpperCase()} (${percentage}%)`);
+  console.log('Emotion breakdown:');
+  Object.entries(emotionCounts).forEach(([emotion, count]) => {
+    const pct = ((count / totalDetections) * 100).toFixed(1);
+    console.log(`  ${emotion}: ${count} times (${pct}%)`);
+  });
+  console.log('===============================');
+
+  // Reset for next hour
+  currentHourEmotions = [];
+  hourlyStartTime = Date.now();
 }
 
 // Start emotion detection loop
@@ -171,6 +326,9 @@ async function handleEmotionDetected(emotion, confidence = 0.8, timestamp = null
     confidence: confidence
   });
 
+  // Track for hourly summary
+  currentHourEmotions.push(emotion);
+
   // Keep only last 50 emotions
   if (emotionHistory.length > 50) {
     emotionHistory = emotionHistory.slice(-50);
@@ -195,7 +353,7 @@ async function handleEmotionDetected(emotion, confidence = 0.8, timestamp = null
   // Check if we should show notification
   await checkForNotification(emotion);
 
-  console.log(`Emotion detected: ${emotion} (confidence: ${confidence.toFixed(2)})`);
+  console.log(`Emotion detected: ${emotion} (confidence: ${confidence.toFixed(2)}) - Hourly count: ${currentHourEmotions.length}`);
 }
 
 // Send emotion data to API

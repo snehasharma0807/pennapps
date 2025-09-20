@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   notificationInterval.value = settings.notificationInterval;
 
+  // Get current detection status
+  await updateDetectionStatus();
   updateStatus();
   updateRecentEmotions(settings.lastEmotions);
 
@@ -74,6 +76,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     await chrome.storage.sync.set({ notificationInterval: parseInt(e.target.value) });
   });
 
+  // Get current detection status from background
+  async function updateDetectionStatus() {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'getStatus' });
+      if (response) {
+        // Update last detection time
+        if (response.lastDetection) {
+          const time = new Date(response.lastDetection.timestamp).toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+          lastDetection.textContent = time;
+        } else {
+          lastDetection.textContent = 'Never';
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get detection status:', error);
+    }
+  }
+
   // Enhanced status indicator with animations
   function updateStatus() {
     const webcamEnabled = webcamToggle.classList.contains('active');
@@ -84,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="status-dot"></div>
         <span>Active</span>
       `;
-      webcamStatus.textContent = 'Active';
+      webcamStatus.textContent = 'Monitoring';
       webcamStatus.style.color = '#059669';
     } else {
       statusIndicator.className = 'status-indicator status-inactive';
@@ -191,6 +214,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     card.addEventListener('mouseleave', () => {
       card.style.transform = 'translateY(0)';
     });
+  });
+
+  // Auto-refresh status every 5 seconds when popup is open
+  const statusRefreshInterval = setInterval(async () => {
+    await updateDetectionStatus();
+    updateStatus();
+  }, 5000);
+
+  // Clean up interval when popup closes
+  window.addEventListener('beforeunload', () => {
+    clearInterval(statusRefreshInterval);
   });
 
   // Listen for updates from background script

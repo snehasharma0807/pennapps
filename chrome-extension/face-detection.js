@@ -145,9 +145,14 @@ class EmotionDetector {
       throw new Error('Failed to initialize emotion detection');
     }
 
-    this.video = document.createElement('video');
-    this.canvas = document.createElement('canvas');
-    this.ctx = this.canvas.getContext('2d');
+    // Use existing video element if available, otherwise create new one
+    if (!this.video) {
+      this.video = document.createElement('video');
+    }
+    if (!this.canvas) {
+      this.canvas = document.createElement('canvas');
+      this.ctx = this.canvas.getContext('2d');
+    }
 
     this.video.srcObject = stream;
     this.video.autoplay = true;
@@ -182,10 +187,16 @@ class EmotionDetector {
   }
 
   async detectLoop() {
-    if (!this.isDetecting) return;
+    if (!this.isDetecting) {
+      console.log('Detection stopped, exiting detectLoop');
+      return;
+    }
+
+    console.log('detectLoop running...', 'video readyState:', this.video?.readyState);
 
     try {
       if (this.video && this.video.readyState === 4) {
+        console.log('Video is ready, detecting emotion...');
         const emotion = await this.detectEmotion();
         if (emotion) {
           // Store the latest detection
@@ -288,6 +299,8 @@ class EmotionDetector {
 
   // NEW HYBRID CODE: Extract behavioral features
   extractBehavioralFeatures(faceLandmarks) {
+    console.log('extractBehavioralFeatures called with landmarks:', faceLandmarks ? faceLandmarks.length : 0);
+    
     if (!faceLandmarks || faceLandmarks.length === 0) {
       console.log('No face landmarks available, using fallback features');
       // Generate some variation even without landmarks
@@ -324,7 +337,7 @@ class EmotionDetector {
     this.detectEyeClosure(faceLandmarks);
     this.detectHeadTiltDuration(headTiltSeverity);
 
-    return {
+    const features = {
       blinkRate: this.blinkRate,
       eyeStrain: this.eyeStrain,
       postureScore: this.postureScore,
@@ -333,6 +346,9 @@ class EmotionDetector {
       eyesClosedDuration: this.eyesClosedDuration,
       headTiltDuration: this.headTiltDuration
     };
+    
+    console.log('Returning features:', features);
+    return features;
   }
 
   // NEW HYBRID CODE: Generate fallback features when landmarks aren't available
@@ -369,6 +385,8 @@ class EmotionDetector {
 
   // NEW HYBRID CODE: Calculate blink rate from eye landmarks
   calculateBlinkRate(landmarks) {
+    console.log('calculateBlinkRate called with landmarks:', landmarks ? landmarks.length : 0);
+    
     if (!landmarks || landmarks.length < 68) {
       console.log('Insufficient landmarks for blink detection:', landmarks ? landmarks.length : 0);
       return;
@@ -380,6 +398,8 @@ class EmotionDetector {
     const rightEye = landmarks.slice(42, 48);
     
     console.log('Left eye landmarks:', leftEye.length, 'Right eye landmarks:', rightEye.length);
+    console.log('Left eye points:', leftEye);
+    console.log('Right eye points:', rightEye);
     
     // Calculate eye aspect ratio (EAR) for blink detection
     const leftEAR = this.calculateEyeAspectRatio(leftEye);
@@ -416,7 +436,7 @@ class EmotionDetector {
     const timeElapsed = (Date.now() - this.detectionStartTime) / 1000 / 60; // minutes
     this.blinkRate = timeElapsed > 0 ? this.blinkCount / timeElapsed : 0;
     
-    console.log('Current blink rate:', this.blinkRate.toFixed(1), 'blinks/min');
+    console.log('Blink calculation - timeElapsed:', timeElapsed.toFixed(2), 'minutes, blinkCount:', this.blinkCount, 'blinkRate:', this.blinkRate.toFixed(1), 'blinks/min');
   }
 
   // NEW HYBRID CODE: Calculate eye aspect ratio for blink detection
@@ -807,6 +827,7 @@ class EmotionDetector {
       try {
         console.log('Attempting face detection with face-api.js...');
         console.log('Canvas dimensions:', this.canvas.width, 'x', this.canvas.height);
+        console.log('faceApiReady:', this.faceApiReady, 'faceapi available:', typeof faceapi !== 'undefined');
         
         // Try different detection options for better sensitivity
         const detectionOptions = new faceapi.TinyFaceDetectorOptions({
@@ -823,15 +844,17 @@ class EmotionDetector {
 
         if (detections.length > 0) {
           // Get the largest face (most prominent)
-          const face = detections.reduce((prev, current) => 
-            (prev.detection.box.area > current.detection.box.area) ? prev : current
-          );
+          const face = detections.reduce((prev, current) => {
+            const prevArea = prev.detection?.box?.area || (prev.detection?.box ? prev.detection.box.width * prev.detection.box.height : 0);
+            const currentArea = current.detection?.box?.area || (current.detection?.box ? current.detection.box.width * current.detection.box.height : 0);
+            return prevArea > currentArea ? prev : current;
+          });
 
           faceLandmarks = face.landmarks.positions;
           this.faceLandmarks = faceLandmarks;
           
           console.log('Face landmarks extracted:', faceLandmarks ? faceLandmarks.length : 0, 'points');
-          console.log('Face detection box:', face.detection.box);
+          console.log('Face detection box:', face.detection?.box || face.box);
           
           // NEW HYBRID CODE: Use hybrid classification
           const features = this.extractBehavioralFeatures(faceLandmarks);
@@ -991,19 +1014,19 @@ class EmotionDetector {
     const focusedScore = neutral + (happy * 0.2);
 
     // Tired: High sad + low energy (low happy, low surprised)
-    const tiredScore = 2*(sad + (1 - happy) + (1 - surprised));
+    const tiredScore = 5*(sad + (1 - happy) + (1 - surprised));
 
     // Stressed: High angry + fearful + disgusted
-    const stressedScore = 2*(angry + fearful + disgusted);
+    const stressedScore = 5*(angry + fearful + disgusted);
 
     console.log('Tired Score:', tiredScore);
     console.log('Stressed Score:', stressedScore);
     console.log('Focused Score:', focusedScore);
 
     // Determine dominant emotion
-    if (stressedScore > 0.2) {
+    if (stressedScore > 0.3) {
       return 'stressed';
-    } else if (tiredScore > 0.25) {
+    } else if (tiredScore > 0.4) {
       return 'tired';
     } else if (focusedScore > 0.4) {
       return 'focused';
