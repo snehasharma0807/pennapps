@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkFlow AI - Webcam Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4f46e5;
+            margin-bottom: 10px;
+        }
+        .video-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .video-box {
+            flex: 1;
+            text-align: center;
+        }
+        .video-box h3 {
+            margin-bottom: 15px;
+            color: #374151;
+        }
+        video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        button {
+            background-color: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #3730a3;
+        }
+        button:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .status {
+            background-color: #f3f4f6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .status h3 {
+            margin-bottom: 15px;
+            color: #374151;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        .status-label {
+            font-weight: 500;
+            color: #6b7280;
+        }
+        .status-value {
+            color: #374151;
+        }
+        .emotion-display {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .emotion-display h2 {
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+        }
+        .emotion-display p {
+            margin: 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .confidence-bar {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            height: 8px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            background-color: white;
+            height: 100%;
+            border-radius: 20px;
+            transition: width 0.3s ease;
+        }
+        .detection-log {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .detection-log h3 {
+            margin-bottom: 15px;
+            color: #374151;
+        }
+        .log-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-emotion {
+            font-weight: 500;
+            color: #4f46e5;
+        }
+        .log-time {
+            color: #6b7280;
+        }
+        .log-confidence {
+            color: #059669;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 WorkFlow AI - Webcam Test</h1>
+            <p>Test the emotion detection system with your webcam</p>
+        </div>
+
+        <div class="emotion-display" id="emotion-display">
+            <h2 id="current-emotion">Ready</h2>
+            <p id="emotion-description">Click "Start Detection" to begin</p>
+            <div class="confidence-bar">
+                <div class="confidence-fill" id="confidence-bar" style="width: 0%"></div>
+            </div>
+            <p id="confidence-text">Confidence: 0%</p>
+        </div>
+
+        <div class="controls">
+            <button id="start-btn">Start Detection</button>
+            <button id="stop-btn" disabled>Stop Detection</button>
+            <button id="test-notification-btn">Test Notification</button>
+        </div>
+
+        <div class="status">
+            <h3>Detection Status</h3>
+            <div class="status-item">
+                <span class="status-label">Webcam Access:</span>
+                <span class="status-value" id="webcam-status">Not Started</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Face Detection:</span>
+                <span class="status-value" id="face-detection-status">Inactive</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">AI Model:</span>
+                <span class="status-value" id="ai-model-status">Loading...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Last Detection:</span>
+                <span class="status-value" id="last-detection-time">Never</span>
+            </div>
+        </div>
+
+        <div class="video-container">
+            <div class="video-box">
+                <h3>Live Feed</h3>
+                <video id="webcam-video" autoplay muted playsinline></video>
+            </div>
+            <div class="video-box">
+                <h3>Detection Canvas</h3>
+                <canvas id="detection-canvas"></canvas>
+            </div>
+        </div>
+
+        <div class="detection-log">
+            <h3>Detection History</h3>
+            <div id="detection-log-entries">
+                <p style="color: #6b7280; text-align: center; margin: 20px 0;">No detections yet</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="face-detection.js"></script>
+    <script>
+        let emotionDetector = null;
+        let isDetecting = false;
+        let detectionLog = [];
+
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const testNotificationBtn = document.getElementById('test-notification-btn');
+        const webcamVideo = document.getElementById('webcam-video');
+        const detectionCanvas = document.getElementById('detection-canvas');
+        const currentEmotionEl = document.getElementById('current-emotion');
+        const emotionDescriptionEl = document.getElementById('emotion-description');
+        const confidenceBarEl = document.getElementById('confidence-bar');
+        const confidenceTextEl = document.getElementById('confidence-text');
+        const webcamStatusEl = document.getElementById('webcam-status');
+        const faceDetectionStatusEl = document.getElementById('face-detection-status');
+        const aiModelStatusEl = document.getElementById('ai-model-status');
+        const lastDetectionTimeEl = document.getElementById('last-detection-time');
+        const detectionLogEntriesEl = document.getElementById('detection-log-entries');
+
+        // Initialize emotion detector
+        async function initializeDetector() {
+            try {
+                emotionDetector = new EmotionDetector();
+                const initialized = await emotionDetector.initialize();
+                
+                if (initialized) {
+                    aiModelStatusEl.textContent = emotionDetector.faceApiReady ? 'Face-api.js Ready' : 'Fallback Mode';
+                    aiModelStatusEl.style.color = '#059669';
+                } else {
+                    aiModelStatusEl.textContent = 'Failed to Initialize';
+                    aiModelStatusEl.style.color = '#dc2626';
+                }
+            } catch (error) {
+                console.error('Failed to initialize detector:', error);
+                aiModelStatusEl.textContent = 'Error';
+                aiModelStatusEl.style.color = '#dc2626';
+            }
+        }
+
+        // Start detection
+        async function startDetection() {
+            try {
+                startBtn.disabled = true;
+                webcamStatusEl.textContent = 'Requesting Access...';
+
+                // Get webcam stream
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    }
+                });
+
+                webcamVideo.srcObject = stream;
+                webcamStatusEl.textContent = 'Active';
+                webcamStatusEl.style.color = '#059669';
+
+                // Start emotion detection
+                await emotionDetector.startDetection(stream);
+                
+                isDetecting = true;
+                faceDetectionStatusEl.textContent = 'Active';
+                faceDetectionStatusEl.style.color = '#059669';
+                
+                stopBtn.disabled = false;
+                
+                // Set up detection monitoring
+                monitorDetections();
+
+                console.log('Detection started successfully');
+            } catch (error) {
+                console.error('Failed to start detection:', error);
+                webcamStatusEl.textContent = 'Access Denied';
+                webcamStatusEl.style.color = '#dc2626';
+                startBtn.disabled = false;
+                alert('Failed to access webcam. Please allow camera permissions.');
+            }
+        }
+
+        // Stop detection
+        function stopDetection() {
+            if (emotionDetector) {
+                emotionDetector.stopDetection();
+            }
+            
+            if (webcamVideo.srcObject) {
+                webcamVideo.srcObject.getTracks().forEach(track => track.stop());
+                webcamVideo.srcObject = null;
+            }
+            
+            isDetecting = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            
+            webcamStatusEl.textContent = 'Stopped';
+            webcamStatusEl.style.color = '#6b7280';
+            faceDetectionStatusEl.textContent = 'Inactive';
+            faceDetectionStatusEl.style.color = '#6b7280';
+            
+            // Reset display
+            currentEmotionEl.textContent = 'Stopped';
+            emotionDescriptionEl.textContent = 'Detection stopped';
+            confidenceBarEl.style.width = '0%';
+            confidenceTextEl.textContent = 'Confidence: 0%';
+        }
+
+        // Monitor detections
+        function monitorDetections() {
+            if (!isDetecting) return;
+
+            // Check for new detections
+            if (emotionDetector && emotionDetector.lastDetection) {
+                const emotion = emotionDetector.lastDetection;
+                const latestEntry = emotionDetector.emotionHistory[emotionDetector.emotionHistory.length - 1];
+                
+                if (latestEntry) {
+                    updateEmotionDisplay(emotion, latestEntry.confidence);
+                    addDetectionLogEntry(emotion, latestEntry.confidence, latestEntry.timestamp);
+                }
+            }
+
+            // Update canvas
+            if (emotionDetector && emotionDetector.canvas) {
+                const ctx = detectionCanvas.getContext('2d');
+                detectionCanvas.width = emotionDetector.canvas.width;
+                detectionCanvas.height = emotionDetector.canvas.height;
+                ctx.drawImage(emotionDetector.canvas, 0, 0);
+            }
+
+            setTimeout(monitorDetections, 1000);
+        }
+
+        // Update emotion display
+        function updateEmotionDisplay(emotion, confidence) {
+            const emotionColors = {
+                focused: '#059669',
+                tired: '#d97706',
+                stressed: '#dc2626'
+            };
+
+            const emotionDescriptions = {
+                focused: 'You appear focused and alert',
+                tired: 'You seem tired or drowsy',
+                stressed: 'You appear stressed or anxious'
+            };
+
+            currentEmotionEl.textContent = emotion.charAt(0).toUpperCase() + emotion.slice(1);
+            emotionDescriptionEl.textContent = emotionDescriptions[emotion] || 'Emotion detected';
+            
+            const confidencePercent = Math.round(confidence * 100);
+            confidenceBarEl.style.width = `${confidencePercent}%`;
+            confidenceTextEl.textContent = `Confidence: ${confidencePercent}%`;
+            
+            lastDetectionTimeEl.textContent = new Date().toLocaleTimeString();
+        }
+
+        // Add detection log entry
+        function addDetectionLogEntry(emotion, confidence, timestamp) {
+            const entry = {
+                emotion,
+                confidence,
+                timestamp: new Date(timestamp)
+            };
+
+            detectionLog.unshift(entry);
+            if (detectionLog.length > 20) {
+                detectionLog = detectionLog.slice(0, 20);
+            }
+
+            updateDetectionLog();
+        }
+
+        // Update detection log display
+        function updateDetectionLog() {
+            if (detectionLog.length === 0) {
+                detectionLogEntriesEl.innerHTML = '<p style="color: #6b7280; text-align: center; margin: 20px 0;">No detections yet</p>';
+                return;
+            }
+
+            detectionLogEntriesEl.innerHTML = detectionLog.map(entry => `
+                <div class="log-entry">
+                    <span class="log-emotion">${entry.emotion.charAt(0).toUpperCase() + entry.emotion.slice(1)}</span>
+                    <span class="log-confidence">${Math.round(entry.confidence * 100)}%</span>
+                    <span class="log-time">${entry.timestamp.toLocaleTimeString()}</span>
+                </div>
+            `).join('');
+        }
+
+        // Test notification
+        function testNotification() {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    new Notification('WorkFlow AI Test', {
+                        body: 'This is a test notification from WorkFlow AI!',
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🧠</text></svg>'
+                    });
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            testNotification();
+                        }
+                    });
+                }
+            }
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startDetection);
+        stopBtn.addEventListener('click', stopDetection);
+        testNotificationBtn.addEventListener('click', testNotification);
+
+        // Initialize on load
+        window.addEventListener('load', initializeDetector);
+    </script>
+</body>
+</html>

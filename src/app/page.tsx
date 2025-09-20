@@ -1,11 +1,15 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Brain, Users, Zap } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Camera, Brain, BarChart3, Bell } from 'lucide-react';
+import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
 
 export default function LandingPage() {
+  const { user, error, isLoading } = useUser();
+
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Animated Logo */}
@@ -39,9 +43,30 @@ export default function LandingPage() {
           <Link href="/" className="static-logo">
             <Logo variant="intention-ai" />
           </Link>
-          <Link href="/auth">
-            <Button variant="ghost" className="login-button" style={{color: '#2c423f'}}>Log in</Button>
-          </Link>
+          <div className="flex items-center space-x-4">
+            {isLoading ? (
+              <div className="animate-pulse bg-gray-200 h-8 w-20 rounded"></div>
+            ) : user ? (
+              <>
+                <span className="text-sm" style={{color: '#2c423f'}}>Welcome, {user.name || user.email}</span>
+                <Link href="/dashboard">
+                  <Button variant="outline" style={{color: '#2c423f'}}>Dashboard</Button>
+                </Link>
+                <a href="/api/auth/logout">
+                  <Button variant="ghost" style={{color: '#2c423f'}}>Logout</Button>
+                </a>
+              </>
+            ) : (
+              <>
+                <Link href="/auth">
+                  <Button variant="ghost" className="login-button" style={{color: '#2c423f'}}>Log in</Button>
+                </Link>
+                <a href="/api/auth/login">
+                  <Button style={{backgroundColor: '#677d61', color: '#ffffff'}}>Get Started</Button>
+                </a>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Main Content */}
@@ -50,10 +75,27 @@ export default function LandingPage() {
             <span style={{color: '#677d61'}}>3 signals.</span> <span style={{color: '#93a57b'}}>1 glance.</span> <em style={{color: '#fffd7a', fontStyle: 'italic'}}>Intentional productivity</em>
           </h1>
           
+          <p className="text-xl mb-8" style={{color: '#2c423f'}}>
+            Monitor your focus, stress, and energy levels through webcam analysis and receive personalized suggestions to optimize your workflow.
+          </p>
+
           <div className="mb-8">
-            <Link href="/extension">
-              <Button size="lg" className="text-white text-lg px-8 py-4 rounded-lg" style={{backgroundColor: '#677d61'}}>
-                Add to Chrome - It's Free
+            {user ? (
+              <Link href="/dashboard">
+                <Button size="lg" className="text-white text-lg px-8 py-4 rounded-lg" style={{backgroundColor: '#677d61'}}>
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <a href="/api/auth/login">
+                <Button size="lg" className="text-white text-lg px-8 py-4 rounded-lg" style={{backgroundColor: '#677d61'}}>
+                  Start Free Trial
+                </Button>
+              </a>
+            )}
+            <Link href="/extension" className="ml-4">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-4" style={{color: '#2c423f', borderColor: '#677d61'}}>
+                Download Chrome Extension
               </Button>
             </Link>
           </div>

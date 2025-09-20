@@ -1,8 +1,8 @@
-# WorkFlow AI - Emotion Detection & Productivity Tool
+# Intension.ai - Emotion Detection & Productivity Tool
 
 A comprehensive Chrome extension + hosted website that uses webcam + AI to detect user emotions while working and provide real-time suggestions with analytics.
 
-## 🔹 Features
+## Features
 
 - **Real-time Emotion Detection**: Uses webcam and face-api.js to detect focused, tired, and stressed states
 - **AI-Powered Suggestions**: Google Gemini API provides personalized productivity recommendations
@@ -11,7 +11,7 @@ A comprehensive Chrome extension + hosted website that uses webcam + AI to detec
 - **User Authentication**: Auth0 integration with email and Google login
 - **Data Persistence**: MongoDB storage for emotion events and user preferences
 
-## 🔹 Tech Stack
+## Tech Stack
 
 - **Frontend**: Next.js 15, React 19, TailwindCSS, shadcn/ui
 - **Backend**: Next.js API routes + MongoDB (Mongoose)
@@ -21,7 +21,7 @@ A comprehensive Chrome extension + hosted website that uses webcam + AI to detec
 - **AI Suggestions**: Google Gemini API
 - **Browser Extension**: Manifest v3, service worker, content scripts
 
-## 🔹 Quick Start
+## Quick Start
 
 ### 1. Environment Setup
 
@@ -68,7 +68,7 @@ Visit `http://localhost:3000` to see the website.
 3. Click "Load unpacked" and select the `chrome-extension/` folder
 4. The extension will appear in your browser toolbar
 
-## 🔹 Project Structure
+## Project Structure
 
 ```
 ├── src/
@@ -91,7 +91,7 @@ Visit `http://localhost:3000` to see the website.
 └── README.md
 ```
 
-## 🔹 API Endpoints
+## API Endpoints
 
 - `POST /api/emotions` - Record emotion event
 - `GET /api/emotions?week=current` - Get emotion analytics
@@ -99,7 +99,7 @@ Visit `http://localhost:3000` to see the website.
 - `GET /api/user` - Get user profile
 - `PUT /api/user` - Update user settings
 
-## 🔹 Chrome Extension
+## Chrome Extension
 
 ### Features
 - **Webcam Monitoring**: Continuous emotion detection via webcam
@@ -114,7 +114,7 @@ Visit `http://localhost:3000` to see the website.
 - `activeTab` - Access current tab
 - `scripting` - Inject content scripts
 
-## 🔹 MongoDB Schema
+## MongoDB Schema
 
 ### User
 ```javascript
@@ -141,7 +141,7 @@ Visit `http://localhost:3000` to see the website.
 }
 ```
 
-## 🔹 Deployment
+## Deployment
 
 ### Website (Vercel)
 1. Connect your GitHub repository to Vercel
@@ -153,7 +153,7 @@ Visit `http://localhost:3000` to see the website.
 2. Submit to Chrome Web Store
 3. Or distribute as unpacked extension
 
-## 🔹 Development
+## Development
 
 ### Dependency Management
 The project includes a comprehensive dependency check script:
@@ -173,7 +173,7 @@ npm run check-deps
 3. Update Chrome extension in `chrome-extension/`
 4. Test with dependency check script
 
-## 🔹 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -197,7 +197,7 @@ npm run check-deps
 ### Debug Mode
 Set `NODE_ENV=development` for detailed error logging.
 
-## 🔹 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -205,10 +205,10 @@ Set `NODE_ENV=development` for detailed error logging.
 4. Run dependency check: `npm run check-deps`
 5. Submit a pull request
 
-## 🔹 License
+## License
 
 MIT License - see LICENSE file for details.
 
 ---
 
-**Built with ❤️ for PennApps 2024**
+**Built with LOVE for PennApps 2025**

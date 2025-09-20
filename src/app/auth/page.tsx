@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { ArrowLeft, User, Mail, Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
+import { useUser } from '@auth0/nextjs-auth0/client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function AuthPage() {
+  const { user, isLoading } = useUser();
+  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,30 +21,23 @@ export default function AuthPage() {
     confirmPassword: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isLogin) {
-      // Handle login
-      console.log('Login attempt:', { email: formData.email, password: formData.password });
-      // For demo purposes, redirect to dashboard
-      window.location.href = '/dashboard';
-    } else {
-      // Handle signup
-      if (formData.password !== formData.confirmPassword) {
-        alert('Passwords do not match');
-        return;
-      }
-      console.log('Signup attempt:', formData);
-      // For demo purposes, redirect to dashboard
-      window.location.href = '/dashboard';
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
     }
-  };
+  }, [user, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Handle form submission logic here
+    console.log('Form submitted:', formData);
   };
 
   return (

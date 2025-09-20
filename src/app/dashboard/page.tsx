@@ -2,74 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Brain, Clock, Settings, Calendar, TrendingUp, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, BarChart3, Brain, Clock, Calendar, TrendingUp, Settings } from 'lucide-react';
 import Link from 'next/link';
-import Logo from '@/components/Logo';
+// import { useUser } from '@auth0/nextjs-auth0/client';
+import { useRouter } from 'next/navigation';
 import ProductivityDashboard from '@/components/ProductivityDashboard';
 
 export default function Dashboard() {
+  // const { user, isLoading } = useUser();
+  const user = { name: 'Demo User', email: 'demo@example.com' };
+  const isLoading = false;
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'daily' | 'weekly'>('daily');
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  
-  // Generate time range data with emotion segments
-  const generateTimeRangeData = () => {
-    const timeRanges = [
-      { name: 'Morning', period: '5 AM - 12 PM', hours: 7 },
-      { name: 'Afternoon', period: '12 PM - 5 PM', hours: 5 },
-      { name: 'Evening', period: '5 PM - 12 AM', hours: 7 },
-      { name: 'Late Night', period: '12 AM - 5 AM', hours: 5 }
-    ];
-    
-    return timeRanges.map(range => {
-      const totalHours = range.hours;
-      const focused = Math.floor(Math.random() * totalHours * 0.6) + 1;
-      const remaining = totalHours - focused;
-      const tired = Math.floor(Math.random() * remaining * 0.7) + 1;
-      const stressed = remaining - tired;
-      
-      return {
-        ...range,
-        emotions: {
-          focused: Math.max(0, focused),
-          tired: Math.max(0, tired),
-          stressed: Math.max(0, stressed)
-        }
-      };
-    });
-  };
-  
-  // Generate simple emotion totals for stats
-  const generateEmotionTotals = () => {
-    const timeData = generateTimeRangeData();
-    const totals = { focused: 0, tired: 0, stressed: 0 };
-    
-    timeData.forEach(range => {
-      totals.focused += range.emotions.focused;
-      totals.tired += range.emotions.tired;
-      totals.stressed += range.emotions.stressed;
-    });
-    
-    return totals;
-  };
-  
-  const [timeRangeData, setTimeRangeData] = useState(generateTimeRangeData());
-  const [emotionTotals, setEmotionTotals] = useState(generateEmotionTotals());
-  
-  // Regenerate data when view mode changes
-  useEffect(() => {
-    const newTimeData = generateTimeRangeData();
-    setTimeRangeData(newTimeData);
-    
-    const totals = { focused: 0, tired: 0, stressed: 0 };
-    newTimeData.forEach(range => {
-      totals.focused += range.emotions.focused;
-      totals.tired += range.emotions.tired;
-      totals.stressed += range.emotions.stressed;
-    });
-    setEmotionTotals(totals);
-  }, [viewMode]);
-  
+
   // Dark mode styles
   const darkModeStyles = {
     background: isDarkMode ? '#1a1a1a' : '#ffffff',
@@ -79,44 +26,74 @@ export default function Dashboard() {
     border: isDarkMode ? '#404040' : '#93a57b',
     navBackground: isDarkMode ? '#2d2d2d' : '#ffffff'
   };
+
+  // Sample data for demonstration
+  const timeRangeData = [
+    { name: '9:00 AM', period: 'Morning', hours: 1, emotions: { focused: 0.8, tired: 0.1, stressed: 0.1 } },
+    { name: '10:00 AM', period: 'Morning', hours: 1, emotions: { focused: 0.9, tired: 0.05, stressed: 0.05 } },
+    { name: '11:00 AM', period: 'Morning', hours: 1, emotions: { focused: 0.7, tired: 0.2, stressed: 0.1 } },
+    { name: '12:00 PM', period: 'Lunch', hours: 1, emotions: { focused: 0.6, tired: 0.3, stressed: 0.1 } },
+    { name: '1:00 PM', period: 'Afternoon', hours: 1, emotions: { focused: 0.4, tired: 0.4, stressed: 0.2 } },
+    { name: '2:00 PM', period: 'Afternoon', hours: 1, emotions: { focused: 0.8, tired: 0.1, stressed: 0.1 } },
+    { name: '3:00 PM', period: 'Afternoon', hours: 1, emotions: { focused: 0.9, tired: 0.05, stressed: 0.05 } },
+    { name: '4:00 PM', period: 'Afternoon', hours: 1, emotions: { focused: 0.7, tired: 0.2, stressed: 0.1 } },
+    { name: '5:00 PM', period: 'Evening', hours: 1, emotions: { focused: 0.5, tired: 0.3, stressed: 0.2 } }
+  ];
+
+  const emotionTotals = {
+    focused: 6.2,
+    tired: 1.7,
+    stressed: 1.1
+  };
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/auth');
+      return;
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect to auth page
+  }
+
   return (
     <div className="min-h-screen transition-all duration-1000 ease-out" style={{backgroundColor: darkModeStyles.background}}>
       {/* Navigation Bar */}
       <nav className="shadow-sm border-b transition-all duration-500" style={{backgroundColor: darkModeStyles.navBackground, borderColor: darkModeStyles.border}}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            {/* Left side - Logo */}
-            <Link href="/" className="static-logo transition-all duration-300 hover:scale-105">
-              <Logo variant="intention-ai" />
-            </Link>
-            
-            {/* Right side - Navigation items and Dark Mode Toggle */}
-            <div className="flex items-center space-x-6">
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-2 rounded-lg transition-all duration-300 hover:scale-110 hover:rotate-12"
-                style={{backgroundColor: darkModeStyles.cardBackground}}
-              >
-                {isDarkMode ? (
-                  <Sun className="h-5 w-5 transition-all duration-300" style={{color: darkModeStyles.text}} />
-                ) : (
-                  <Moon className="h-5 w-5 transition-all duration-300" style={{color: darkModeStyles.text}} />
-                )}
-              </button>
-              
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="transition-all duration-300 hover:scale-105" style={{color: darkModeStyles.text}}>
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Dashboard
+            <div className="flex items-center space-x-4">
+              <Link href="/">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Home
                 </Button>
               </Link>
+              <h1 className="text-2xl font-bold" style={{color: darkModeStyles.text}}>Dashboard</h1>
+            </div>
+            
+            <div className="flex items-center space-x-4">
               <Link href="/settings">
-                <Button variant="ghost" size="sm" className="transition-all duration-300 hover:scale-105" style={{color: darkModeStyles.text}}>
+                <Button variant="ghost" size="sm" style={{color: darkModeStyles.text}}>
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </Button>
               </Link>
+              <div className="text-sm" style={{color: darkModeStyles.textSecondary}}>
+                Welcome, {user.name || user.email}
+              </div>
             </div>
           </div>
         </div>

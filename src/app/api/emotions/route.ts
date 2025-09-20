@@ -99,7 +99,9 @@ export async function GET(request: NextRequest) {
     };
 
     events.forEach(event => {
-      analytics[event.timeOfDay as keyof typeof analytics][event.emotion]++;
+      const timeOfDay = event.timeOfDay as keyof typeof analytics;
+      const emotion = event.emotion as 'focused' | 'tired' | 'stressed';
+      analytics[timeOfDay][emotion]++;
     });
 
     return NextResponse.json({ analytics, events });
