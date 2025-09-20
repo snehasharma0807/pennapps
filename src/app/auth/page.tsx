@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, User, Mail, Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
-import { useUser } from '@auth0/nextjs-auth0/client';
+// import { useUser } from '@auth0/nextjs-auth0/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function AuthPage() {
-  const { user, isLoading } = useUser();
+  // const { user, isLoading } = useUser();
+  const user = null; // No user for now
+  const isLoading = false;
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);

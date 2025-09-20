@@ -3,12 +3,15 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, Brain, BarChart3, Bell } from 'lucide-react';
-import { useUser } from '@auth0/nextjs-auth0/client';
+// import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
 
 export default function LandingPage() {
-  const { user, error, isLoading } = useUser();
+  // const { user, error, isLoading } = useUser();
+  const user = null; // No user for now
+  const error = null;
+  const isLoading = false;
 
   return (
     <div className="min-h-screen flex">
@@ -61,9 +64,6 @@ export default function LandingPage() {
                 <Link href="/auth">
                   <Button variant="ghost" className="login-button" style={{color: '#2c423f'}}>Log in</Button>
                 </Link>
-                <a href="/api/auth/login">
-                  <Button style={{backgroundColor: '#677d61', color: '#ffffff'}}>Get Started</Button>
-                </a>
               </>
             )}
           </div>
@@ -87,17 +87,12 @@ export default function LandingPage() {
                 </Button>
               </Link>
             ) : (
-              <a href="/api/auth/login">
-                <Button size="lg" className="text-white text-lg px-8 py-4 rounded-lg" style={{backgroundColor: '#677d61'}}>
-                  Start Free Trial
+              <Link href="/extension">
+                <Button size="lg" variant="outline" className="text-lg px-8 py-4" style={{color: '#2c423f', borderColor: '#677d61'}}>
+                  Download Chrome Extension
                 </Button>
-              </a>
+              </Link>
             )}
-            <Link href="/extension" className="ml-4">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-4" style={{color: '#2c423f', borderColor: '#677d61'}}>
-                Download Chrome Extension
-              </Button>
-            </Link>
           </div>
 
           {/* Features */}

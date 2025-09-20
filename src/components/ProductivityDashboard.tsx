@@ -15,6 +15,7 @@ interface TimeRangeData {
 interface ProductivityDashboardProps {
   timeRangeData: TimeRangeData[];
   isDarkMode?: boolean;
+  viewMode?: 'daily' | 'weekly';
 }
 
 interface Insight {
@@ -25,7 +26,8 @@ interface Insight {
 
 const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({ 
   timeRangeData, 
-  isDarkMode = false 
+  isDarkMode = false,
+  viewMode = 'daily'
 }) => {
   const [hoveredPeriod, setHoveredPeriod] = useState<string | null>(null);
   // Generate insights from the data
@@ -153,7 +155,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
   };
   
   return (
-    <div className="grid lg:grid-cols-2 gap-8">
+    <div key={`dashboard-${viewMode}`} className="grid lg:grid-cols-2 gap-8">
       {/* Heatmap Chart */}
       <div>
         <h3 className="text-2xl font-bold mb-6" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
@@ -169,7 +171,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
             
             return (
               <div 
-                key={range.name} 
+                key={`${range.name}-${viewMode}`}
                 className={`space-y-3 transition-all duration-500 ease-out cursor-pointer ${
                   isHovered ? 'transform scale-105' : ''
                 }`}
@@ -186,51 +188,54 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                   }`} style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
                     {range.name}
                   </h4>
-                  <span className="text-sm transition-all duration-300" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
-                    {range.period}
-                  </span>
                 </div>
                 
                 {/* Heatmap Bar */}
-                <div className={`relative rounded-lg overflow-hidden shadow-lg transition-all duration-500 ${
+                <div className={`relative rounded-lg overflow-hidden shadow-lg transition-all duration-500 ease-out ${
                   isHovered ? 'h-16 shadow-2xl' : 'h-12'
                 }`} style={{backgroundColor: isDarkMode ? '#374151' : '#f3f4f6'}}>
                   {/* Focused Segment */}
                   <div 
-                    className="absolute left-0 top-0 h-full flex items-center justify-center text-white text-xs font-medium transition-all duration-500 hover:opacity-90"
+                    key={`focused-${range.name}-${viewMode}`}
+                    className="absolute left-0 top-0 h-full flex items-center justify-center text-white text-xs font-medium hover:opacity-90"
                     style={{
                       width: `${(focused / totalHours) * 100}%`,
-                      backgroundColor: '#677d61' // Our green
+                      backgroundColor: '#677d61', // Our green
+                      transition: 'width 1000ms ease-out, left 1000ms ease-out'
                     }}
-                    title={`Focused: ${focused}h`}
+                    title={`Focused: ${Math.round(focused)}h`}
                   >
-                    {focused > 0 && focused >= 1.5 && `${focused}h`}
+                    {focused > 0 && focused >= 1.5 && `${Math.round(focused)}h`}
                   </div>
                   
                   {/* Tired Segment */}
                   <div 
-                    className="absolute top-0 h-full flex items-center justify-center text-white text-xs font-medium transition-all duration-500 hover:opacity-90"
+                    key={`tired-${range.name}-${viewMode}`}
+                    className="absolute top-0 h-full flex items-center justify-center text-white text-xs font-medium hover:opacity-90"
                     style={{
                       left: `${(focused / totalHours) * 100}%`,
                       width: `${(tired / totalHours) * 100}%`,
-                      backgroundColor: '#93a57b' // Our medium green
+                      backgroundColor: '#93a57b', // Our medium green
+                      transition: 'width 1000ms ease-out, left 1000ms ease-out'
                     }}
-                    title={`Tired: ${tired}h`}
+                    title={`Tired: ${Math.round(tired)}h`}
                   >
-                    {tired > 0 && tired >= 1.5 && `${tired}h`}
+                    {tired > 0 && tired >= 1.5 && `${Math.round(tired)}h`}
                   </div>
                   
                   {/* Stressed Segment */}
                   <div 
-                    className="absolute top-0 h-full flex items-center justify-center text-black text-xs font-medium transition-all duration-500 hover:opacity-90"
+                    key={`stressed-${range.name}-${viewMode}`}
+                    className="absolute top-0 h-full flex items-center justify-center text-black text-xs font-medium hover:opacity-90"
                     style={{
                       left: `${((focused + tired) / totalHours) * 100}%`,
                       width: `${(stressed / totalHours) * 100}%`,
-                      backgroundColor: '#fffd7a' // Our yellow
+                      backgroundColor: '#fffd7a', // Our yellow
+                      transition: 'width 1000ms ease-out, left 1000ms ease-out'
                     }}
-                    title={`Stressed: ${stressed}h`}
+                    title={`Stressed: ${Math.round(stressed)}h`}
                   >
-                    {stressed > 0 && stressed >= 1.5 && `${stressed}h`}
+                    {stressed > 0 && stressed >= 1.5 && `${Math.round(stressed)}h`}
                   </div>
                 </div>
                 
@@ -240,15 +245,15 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                 }`} style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
                   <span className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded transition-all duration-300" style={{backgroundColor: '#677d61'}}></div>
-                    <span>Focused: {focused}h</span>
+                    <span>Focused: {Math.round(focused)}h</span>
                   </span>
                   <span className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded transition-all duration-300" style={{backgroundColor: '#93a57b'}}></div>
-                    <span>Tired: {tired}h</span>
+                    <span>Tired: {Math.round(tired)}h</span>
                   </span>
                   <span className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded transition-all duration-300" style={{backgroundColor: '#fffd7a'}}></div>
-                    <span>Stressed: {stressed}h</span>
+                    <span>Stressed: {Math.round(stressed)}h</span>
                   </span>
                 </div>
               </div>
@@ -281,32 +286,44 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
           <h4 className="text-xl font-semibold mb-8 text-center" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
             Quick Summary
           </h4>
-          <div className="grid grid-cols-3 gap-8 text-center">
-            <div className="transition-all duration-300 hover:scale-110">
-              <div className="text-4xl font-bold mb-2" style={{color: '#677d61'}}>
-                {timeRangeData.reduce((sum, range) => sum + range.emotions.focused, 0)}
-              </div>
-              <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
-                Focused Hours
-              </div>
+        <div className="grid grid-cols-3 gap-8 text-center">
+          <div className="transition-all duration-1000 ease-out hover:scale-110">
+            <div 
+              className="text-4xl font-bold mb-2 transition-all duration-1000 ease-out" 
+              style={{color: '#677d61'}}
+              key={`focused-summary-${viewMode}`}
+            >
+              {Math.round(timeRangeData.reduce((sum, range) => sum + range.emotions.focused, 0))}
             </div>
-            <div className="transition-all duration-300 hover:scale-110">
-              <div className="text-4xl font-bold mb-2" style={{color: '#93a57b'}}>
-                {timeRangeData.reduce((sum, range) => sum + range.emotions.tired, 0)}
-              </div>
-              <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
-                Tired Hours
-              </div>
-            </div>
-            <div className="transition-all duration-300 hover:scale-110">
-              <div className="text-4xl font-bold mb-2" style={{color: '#fffd7a'}}>
-                {timeRangeData.reduce((sum, range) => sum + range.emotions.stressed, 0)}
-              </div>
-              <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
-                Stressed Hours
-              </div>
+            <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
+              Focused Hours
             </div>
           </div>
+          <div className="transition-all duration-1000 ease-out hover:scale-110">
+            <div 
+              className="text-4xl font-bold mb-2 transition-all duration-1000 ease-out" 
+              style={{color: '#93a57b'}}
+              key={`tired-summary-${viewMode}`}
+            >
+              {Math.round(timeRangeData.reduce((sum, range) => sum + range.emotions.tired, 0))}
+            </div>
+            <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
+              Tired Hours
+            </div>
+          </div>
+          <div className="transition-all duration-1000 ease-out hover:scale-110">
+            <div 
+              className="text-4xl font-bold mb-2 transition-all duration-1000 ease-out" 
+              style={{color: '#fffd7a'}}
+              key={`stressed-summary-${viewMode}`}
+            >
+              {Math.round(timeRangeData.reduce((sum, range) => sum + range.emotions.stressed, 0))}
+            </div>
+            <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
+              Stressed Hours
+            </div>
+          </div>
+        </div>
         </div>
       </div>
     </div>
