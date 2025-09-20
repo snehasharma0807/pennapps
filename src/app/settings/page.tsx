@@ -123,7 +123,7 @@ export default function SettingsPage() {
         alert(`Failed to save settings: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         alert('Request timed out. Please try again.');
       } else {
         console.error('Error saving settings:', error);
@@ -177,7 +177,7 @@ export default function SettingsPage() {
         alert(`Failed to delete account: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         alert('Request timed out. Please try again.');
       } else {
         console.error('Error deleting account:', error);
