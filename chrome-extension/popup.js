@@ -23,7 +23,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const settings = await chrome.storage.sync.get({
     webcamEnabled: false,
     notificationsEnabled: true,
-    lastEmotions: []
+    lastEmotions: [],
+    userToken: null,
+    userId: null,
+    userEmail: null
   });
 
   // Update UI with saved settings
@@ -34,6 +37,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     notificationsToggle.classList.add('active');
   }
 
+  // Update authentication UI with stored credentials
+  console.log('🔐 Loading stored authentication settings:', {
+    hasToken: !!settings.userToken,
+    hasEmail: !!settings.userEmail,
+    hasUserId: !!settings.userId
+  });
+  updateAuthUI(settings);
+
   
 
   // Add loading states and enhanced interactions
@@ -42,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     openDashboardBtn.disabled = true;
     
     try {
-      await chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
+      await chrome.tabs.create({ url: 'http://localhost:3002/dashboard' });
     } catch (error) {
       console.error('Failed to open dashboard:', error);
       openDashboardBtn.innerHTML = '❌ Failed to open';
@@ -269,6 +280,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Authentication functions
   function updateAuthUI(settings) {
+    console.log('🔐 updateAuthUI called with settings:', {
+      hasToken: !!settings.userToken,
+      hasEmail: !!settings.userEmail,
+      tokenLength: settings.userToken?.length || 0
+    });
+    
     if (settings.userToken && settings.userEmail) {
       authStatus.textContent = 'Connected';
       authStatus.style.background = 'linear-gradient(135deg, #10b981, #059669)';
@@ -298,7 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     authLogin.disabled = true;
 
     try {
-      const response = await fetch('http://localhost:3000/api/extension-auth', {
+      const response = await fetch('http://localhost:3002/api/extension-auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -308,11 +325,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('🔐 Storing authentication data:', {
+          tokenLength: token.length,
+          userId: data.user.id,
+          userEmail: data.user.email
+        });
+        
         await chrome.storage.sync.set({
           userToken: token,
           userId: data.user.id,
           userEmail: data.user.email
         });
+        
+        console.log('🔐 Authentication data stored successfully');
         
         authMessage.textContent = `Connected as ${data.user.email}`;
         authMessage.style.color = '#059669';
@@ -370,4 +395,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Add event listener for auth login button
   authLogin.addEventListener('click', connectAccount);
+
+  // Debug function to test storage (can be called from console)
+  window.testStorage = async () => {
+    console.log('🧪 Testing Chrome storage...');
+    const testData = await chrome.storage.sync.get(['userToken', 'userId', 'userEmail']);
+    console.log('🧪 Stored data:', testData);
+    return testData;
+  };
 });
