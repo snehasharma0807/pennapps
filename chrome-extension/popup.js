@@ -1,4 +1,4 @@
-// Popup UI logic
+// Enhanced Popup UI logic with modern interactions
 document.addEventListener('DOMContentLoaded', async () => {
   // Get UI elements
   const webcamToggle = document.getElementById('webcam-toggle');
@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const webcamStatus = document.getElementById('webcam-status');
   const lastDetection = document.getElementById('last-detection');
   const recentEmotions = document.getElementById('recent-emotions');
+  const emotionsCount = document.getElementById('emotions-count');
 
   // Load saved settings
   const settings = await chrome.storage.sync.get({
@@ -31,44 +32,80 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateStatus();
   updateRecentEmotions(settings.lastEmotions);
 
-  // Event listeners
-  openDashboardBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
+  // Add loading states and enhanced interactions
+  openDashboardBtn.addEventListener('click', async () => {
+    openDashboardBtn.innerHTML = '⏳ Opening...';
+    openDashboardBtn.disabled = true;
+    
+    try {
+      await chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
+    } catch (error) {
+      console.error('Failed to open dashboard:', error);
+      openDashboardBtn.innerHTML = '❌ Failed to open';
+      setTimeout(() => {
+        openDashboardBtn.innerHTML = '🚀 Open Dashboard';
+        openDashboardBtn.disabled = false;
+      }, 2000);
+    }
   });
 
   testNotificationBtn.addEventListener('click', async () => {
-    chrome.runtime.sendMessage({ action: 'testNotification' });
+    testNotificationBtn.innerHTML = '⏳ Testing...';
+    testNotificationBtn.disabled = true;
+    
+    try {
+      await chrome.runtime.sendMessage({ action: 'testNotification' });
+      testNotificationBtn.innerHTML = '✅ Sent!';
+      setTimeout(() => {
+        testNotificationBtn.innerHTML = '🔔 Test Notification';
+        testNotificationBtn.disabled = false;
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to send test notification:', error);
+      testNotificationBtn.innerHTML = '❌ Failed';
+      setTimeout(() => {
+        testNotificationBtn.innerHTML = '🔔 Test Notification';
+        testNotificationBtn.disabled = false;
+      }, 2000);
+    }
   });
 
   notificationInterval.addEventListener('change', async (e) => {
     await chrome.storage.sync.set({ notificationInterval: parseInt(e.target.value) });
   });
 
-  // Update status indicator
+  // Enhanced status indicator with animations
   function updateStatus() {
     const webcamEnabled = webcamToggle.classList.contains('active');
+    
     if (webcamEnabled) {
+      statusIndicator.className = 'status-indicator status-active';
       statusIndicator.innerHTML = `
-        <div class="status-indicator">
-          <div class="status-dot status-active"></div>
-          <span class="text-xs text-gray-500">Active</span>
-        </div>
+        <div class="status-dot"></div>
+        <span>Active</span>
       `;
       webcamStatus.textContent = 'Active';
+      webcamStatus.style.color = '#059669';
     } else {
+      statusIndicator.className = 'status-indicator status-inactive';
       statusIndicator.innerHTML = `
-        <div class="status-indicator">
-          <div class="status-dot status-inactive"></div>
-          <span class="text-xs text-gray-500">Inactive</span>
-        </div>
+        <div class="status-dot"></div>
+        <span>Inactive</span>
       `;
       webcamStatus.textContent = 'Not active';
+      webcamStatus.style.color = '#dc2626';
     }
   }
 
-  // Toggle functions
+  // Enhanced toggle functions with haptic feedback simulation
   window.toggleWebcam = async function() {
     const enabled = !webcamToggle.classList.contains('active');
+    
+    // Add visual feedback
+    webcamToggle.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      webcamToggle.style.transform = 'scale(1)';
+    }, 150);
     
     if (enabled) {
       webcamToggle.classList.add('active');
@@ -86,6 +123,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.toggleNotifications = async function() {
     const enabled = !notificationsToggle.classList.contains('active');
     
+    // Add visual feedback
+    notificationsToggle.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      notificationsToggle.style.transform = 'scale(1)';
+    }, 150);
+    
     if (enabled) {
       notificationsToggle.classList.add('active');
       await chrome.storage.sync.set({ notificationsEnabled: true });
@@ -95,25 +138,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-  // Update recent emotions display
+  // Enhanced recent emotions display with better formatting
   function updateRecentEmotions(emotions) {
+    emotionsCount.textContent = emotions.length;
+    
     if (emotions.length === 0) {
-      recentEmotions.innerHTML = '<div class="text-xs text-gray-500">No recent data</div>';
+      recentEmotions.innerHTML = '<div class="no-data">No recent data available</div>';
       return;
     }
 
     const emotionsHtml = emotions.slice(0, 5).map(emotion => {
-      const time = new Date(emotion.timestamp).toLocaleTimeString();
-      const color = {
-        focused: 'text-green-600',
-        tired: 'text-yellow-600',
-        stressed: 'text-red-600'
-      }[emotion.emotion] || 'text-gray-600';
+      const time = new Date(emotion.timestamp).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      
+      const emojiMap = {
+        focused: '🎯',
+        tired: '😴',
+        stressed: '😰',
+        happy: '😊',
+        sad: '😢',
+        angry: '😠',
+        surprised: '😲',
+        neutral: '😐'
+      };
+      
+      const emoji = emojiMap[emotion.emotion] || '🤔';
+      const colorClass = `emotion-${emotion.emotion}`;
 
       return `
-        <div class="flex justify-between items-center text-xs">
-          <span class="${color} capitalize">${emotion.emotion}</span>
-          <span class="text-gray-500">${time}</span>
+        <div class="emotion-item">
+          <div class="emotion-info">
+            <span class="emotion-emoji">${emoji}</span>
+            <span class="emotion-name ${colorClass}">${emotion.emotion}</span>
+          </div>
+          <span class="emotion-time">${time}</span>
         </div>
       `;
     }).join('');
@@ -121,10 +181,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     recentEmotions.innerHTML = emotionsHtml;
   }
 
+  // Add smooth animations for card interactions
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      card.style.transform = 'translateY(-2px)';
+    });
+    
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'translateY(0)';
+    });
+  });
+
   // Listen for updates from background script
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'updateRecentEmotions') {
       updateRecentEmotions(message.emotions);
+    }
+    
+    if (message.action === 'updateStatus') {
+      updateStatus();
+    }
+  });
+
+  // Add keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      switch(e.key) {
+        case 'd':
+          e.preventDefault();
+          openDashboardBtn.click();
+          break;
+        case 't':
+          e.preventDefault();
+          testNotificationBtn.click();
+          break;
+        case 'w':
+          e.preventDefault();
+          toggleWebcam();
+          break;
+        case 'n':
+          e.preventDefault();
+          toggleNotifications();
+          break;
+      }
+    }
+  });
+
+  // Add tooltip functionality
+  const tooltips = {
+    'webcam-toggle': 'Toggle webcam monitoring (Ctrl+W)',
+    'notifications-toggle': 'Toggle notifications (Ctrl+N)',
+    'open-dashboard': 'Open dashboard (Ctrl+D)',
+    'test-notification': 'Test notification (Ctrl+T)'
+  };
+
+  Object.entries(tooltips).forEach(([id, text]) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.title = text;
     }
   });
 });
