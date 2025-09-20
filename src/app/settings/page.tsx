@@ -42,19 +42,7 @@ export default function SettingsPage() {
   const fetchUserSettings = async () => {
     setIsLoadingSettings(true);
     try {
-      // Add timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-      
-      const response = await fetch('/api/user', {
-        signal: controller.signal,
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
-      clearTimeout(timeoutId);
-      
+      const response = await fetch('/api/user');
       if (response.ok) {
         const userData = await response.json();
         setSettings({
@@ -62,15 +50,9 @@ export default function SettingsPage() {
           notificationsEnabled: userData.settings?.notificationsEnabled ?? true,
           webcamEnabled: userData.settings?.webcamEnabled ?? true
         });
-      } else {
-        console.error('Failed to fetch user settings:', response.status);
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.error('Request timed out');
-      } else {
-        console.error('Error fetching user settings:', error);
-      }
+      console.error('Error fetching user settings:', error);
     } finally {
       setIsLoadingSettings(false);
     }
