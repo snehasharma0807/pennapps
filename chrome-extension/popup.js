@@ -40,7 +40,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     openDashboardBtn.disabled = true;
     
     try {
-      await chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
+      // Use the configuration system to get the correct URL
+      const dashboardUrl = window.WORKFLOW_CONFIG.getUrl(window.WORKFLOW_CONFIG.endpoints.dashboard);
+      await chrome.tabs.create({ url: dashboardUrl });
     } catch (error) {
       console.error('Failed to open dashboard:', error);
       openDashboardBtn.innerHTML = '❌ Failed to open';

@@ -1,4 +1,4 @@
-# WorkFlow AI - Emotion Detection & Productivity Tool
+# Intension.ai - Emotion Detection & Productivity Tool
 
 A comprehensive Chrome extension + hosted website that uses webcam + AI to detect user emotions while working and provide real-time suggestions with analytics.
 

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface UserSettings {
   notificationInterval: number;
@@ -29,7 +30,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push('/auth');
+      router.push('/api/auth/login');
       return;
     }
     
@@ -153,9 +154,9 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -165,14 +166,17 @@ export default function SettingsPage() {
                   Back to Dashboard
                 </Button>
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+              <h1 className="text-2xl font-bold text-foreground">Settings</h1>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Settings className="h-5 w-5 text-gray-600" />
-              <span className="text-sm text-gray-600">
-                {user.name || user.email}
-              </span>
+            <div className="flex items-center space-x-4">
+              <ThemeToggle />
+              <div className="flex items-center space-x-2">
+                <Settings className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {user.name || user.email}
+                </span>
+              </div>
             </div>
           </div>
         </div>

@@ -29,7 +29,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["face-detection.js", "emotion-test.html"],
+      "resources": ["face-detection.js", "emotion-test.html", "config.js"],
       "matches": ["<all_urls>"]
     }
   ],
