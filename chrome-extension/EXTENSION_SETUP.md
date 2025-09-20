@@ -33,7 +33,7 @@ Click "Allow" for all permissions.
 
 ## 🎯 How to Use
 
-### Starting Emotion Detection
+### Emotion Detection
 
 1. **Click the WorkFlow AI icon** in your browser toolbar
 2. **Toggle "Webcam Monitoring"** to ON (the toggle will turn blue)

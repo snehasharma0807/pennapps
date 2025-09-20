@@ -2,38 +2,68 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, BarChart3, Brain, Clock, Calendar, TrendingUp, Settings, RefreshCw } from 'lucide-react';
+import { ArrowLeft, BarChart3, Brain, Clock, Calendar, TrendingUp, Settings, Moon, Sun } from 'lucide-react';
 import Link from 'next/link';
+// import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import ProductivityDashboard from '@/components/ProductivityDashboard';
+import Logo from '@/components/Logo';
 
 export default function Dashboard() {
-  const { user, token, isLoading, logout } = useAuth();
-  const { resolvedTheme } = useTheme();
+  // const { user, isLoading } = useUser();
+  const user = { name: 'Demo User', email: 'demo@example.com' };
+  const isLoading = false;
   const router = useRouter();
-
   const [viewMode, setViewMode] = useState<'daily' | 'weekly'>('daily');
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
-  const [showToken, setShowToken] = useState(false);
-  const [emotionData, setEmotionData] = useState<any>(null);
-  const [emotionLoading, setEmotionLoading] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Sample data for demonstration with new time periods
-  const timeRangeData = [
-    { name: 'Morning', period: 'Morning', hours: 7, emotions: { focused: 0.8, tired: 0.1, stressed: 0.1 } },
-    { name: 'Afternoon', period: 'Afternoon', hours: 5, emotions: { focused: 0.6, tired: 0.3, stressed: 0.1 } },
-    { name: 'Evening', period: 'Evening', hours: 6, emotions: { focused: 0.3, tired: 0.6, stressed: 0.1 } },
-    { name: 'Late Night', period: 'Late Night', hours: 6, emotions: { focused: 0.1, tired: 0.8, stressed: 0.1 } },
+  // Initialize dark mode from localStorage
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode');
+    if (savedDarkMode !== null) {
+      setIsDarkMode(JSON.parse(savedDarkMode));
+    }
+  }, []);
+
+  // Save dark mode preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+  }, [isDarkMode]);
+
+  // Dark mode styles
+  const darkModeStyles = {
+    background: isDarkMode ? '#0f0f0f' : '#ffffff',
+    text: isDarkMode ? '#ffffff' : '#2c423f',
+    textSecondary: isDarkMode ? '#a0a0a0' : '#93a57b',
+    cardBackground: isDarkMode ? '#1a1a1a' : '#f8f9fa',
+    border: isDarkMode ? '#333333' : '#93a57b',
+    navBackground: isDarkMode ? '#1a1a1a' : '#ffffff'
+  };
+
+  // Sample data for demonstration - changes based on view mode
+  const dailyData = [
+    { name: 'Morning', period: 'Morning', hours: 7, emotions: { focused: 5, tired: 1, stressed: 1 } },
+    { name: 'Afternoon', period: 'Afternoon', hours: 5, emotions: { focused: 3, tired: 1, stressed: 1 } },
+    { name: 'Evening', period: 'Evening', hours: 7, emotions: { focused: 3, tired: 3, stressed: 1 } },
+    { name: 'Late Night', period: 'Late Night', hours: 5, emotions: { focused: 0, tired: 4, stressed: 1 } }
   ];
 
+  const weeklyData = [
+    { name: 'Morning', period: 'Morning', hours: 49, emotions: { focused: 35, tired: 10, stressed: 4 } },
+    { name: 'Afternoon', period: 'Afternoon', hours: 35, emotions: { focused: 22, tired: 8, stressed: 5 } },
+    { name: 'Evening', period: 'Evening', hours: 49, emotions: { focused: 20, tired: 22, stressed: 7 } },
+    { name: 'Late Night', period: 'Late Night', hours: 35, emotions: { focused: 3, tired: 28, stressed: 4 } }
+  ];
+
+  // Select data based on view mode
+  const timeRangeData = viewMode === 'daily' ? dailyData : weeklyData;
+  
+  // Calculate totals dynamically
   const emotionTotals = {
-    focused: 8.4, // (7*0.8 + 5*0.6 + 6*0.3 + 6*0.1)
-    tired: 8.2,   // (7*0.1 + 5*0.3 + 6*0.6 + 6*0.8)
-    stressed: 1.4 // (7*0.1 + 5*0.1 + 6*0.1 + 6*0.1)
+    focused: timeRangeData.reduce((sum, range) => sum + range.emotions.focused, 0),
+    tired: timeRangeData.reduce((sum, range) => sum + range.emotions.tired, 0),
+    stressed: timeRangeData.reduce((sum, range) => sum + range.emotions.stressed, 0)
   };
 
   // Fetch real emotion data from API
@@ -174,27 +204,11 @@ export default function Dashboard() {
   }, [emotionData]);
 
   useEffect(() => {
-    // Redirect if not authenticated
     if (!isLoading && !user) {
       router.push('/auth');
       return;
     }
   }, [user, isLoading, router]);
-
-  // Auto-fetch emotion data when user is available and authentication is determined
-  useEffect(() => {
-    if (user && !isLoading && !emotionData) {
-      console.log('🔄 Auto-fetching emotion data for user:', user.email);
-      fetchEmotionData();
-    }
-  }, [user, isLoading, emotionData]);
-
-
-  // Refresh emotion data (only when user clicks refresh button)
-  const refreshEmotionData = () => {
-    console.log('🔄 Refresh button clicked at:', new Date().toLocaleTimeString());
-    fetchEmotionData();
-  };
 
   if (isLoading) {
     return (
@@ -207,85 +221,71 @@ export default function Dashboard() {
     );
   }
 
-
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to login...</p>
-        </div>
-      </div>
-    );
+    return null; // Will redirect to auth page
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+    <div className="min-h-screen transition-all duration-1000 ease-out relative overflow-hidden" style={{backgroundColor: darkModeStyles.background}}>
+      {/* Background Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-green-50/20 pointer-events-none"></div>
+      
+      {/* Floating Particles */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-20 left-10 w-2 h-2 bg-green-400/30 rounded-full animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-1 h-1 bg-blue-400/40 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-60 left-1/4 w-1.5 h-1.5 bg-yellow-400/30 rounded-full animate-bounce" style={{animationDelay: '2s'}}></div>
+        <div className="absolute top-80 right-1/3 w-1 h-1 bg-green-400/50 rounded-full animate-pulse" style={{animationDelay: '3s'}}></div>
+        <div className="absolute top-32 left-1/2 w-2 h-2 bg-blue-400/20 rounded-full animate-ping" style={{animationDelay: '4s'}}></div>
+      </div>
+      
       {/* Navigation Bar */}
-      <nav className="shadow-sm border-b border-border bg-card transition-colors duration-300">
+      <nav className="shadow-sm border-b transition-all duration-500 backdrop-blur-sm relative z-10" style={{backgroundColor: darkModeStyles.navBackground, borderColor: darkModeStyles.border}}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Home
-                </Button>
+              <Link href="/" className="hover:opacity-80 transition-opacity">
+                <span className="text-2xl font-bold" style={{color: '#2c423f'}}>intention.ai</span>
               </Link>
-              <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+              <h1 className="text-2xl font-bold" style={{color: darkModeStyles.text}}>Dashboard</h1>
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => {
-                    console.log('🔄 Refresh button clicked!');
-                    refreshEmotionData();
-                  }}
-                  disabled={emotionLoading}
-                  className="bg-blue-100 hover:bg-blue-200"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${emotionLoading ? 'animate-spin' : ''}`} />
-                  {emotionLoading ? 'Loading...' : 'Refresh Data'}
-                </Button>
-                {lastRefreshTime && (
-                  <span className="text-xs text-gray-500">
-                    Last: {lastRefreshTime}
-                  </span>
-                )}
-              </div>
-              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="transition-all duration-300 hover:scale-110"
+                style={{color: darkModeStyles.text}}
+              >
+                {isDarkMode ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+                {isDarkMode ? 'Light' : 'Dark'}
+              </Button>
               <Link href="/settings">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" style={{color: darkModeStyles.text}}>
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </Button>
               </Link>
-              <div className="text-sm text-muted-foreground">
-                Welcome, {user.name || user.email || 'User'}
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={logout}
-              >
-                Logout
-              </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 py-8 animate-in fade-in-50 duration-700">
+      <main className="container mx-auto px-4 py-8 animate-in fade-in-50 duration-700 relative z-10">
         {/* Header with View Toggle */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
+        <div className="flex items-center justify-between mb-12">
+          <div className="space-y-2">
+            <h1 
+              className="text-4xl font-bold transition-all duration-700 ease-out"
+              style={{color: darkModeStyles.text}}
+            >
               {viewMode === 'daily' ? 'Daily Overview' : 'Weekly Overview'}
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p 
+              className="text-lg transition-all duration-700 ease-out opacity-80" 
+              style={{color: darkModeStyles.textSecondary}}
+            >
               {viewMode === 'daily' 
                 ? 'Your emotional patterns throughout the day' 
                 : 'Your emotional patterns throughout the week'
@@ -294,118 +294,135 @@ export default function Dashboard() {
           </div>
           
           {/* View Toggle */}
-          <div className="flex rounded-lg p-1 bg-muted">
+          <div className="flex rounded-xl p-1 backdrop-blur-sm shadow-lg border transition-all duration-500" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}}>
             <button
               onClick={() => setViewMode('daily')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'daily'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
+                viewMode === 'daily' 
+                  ? 'text-white shadow-xl scale-105' 
+                  : 'hover:scale-102'
               }`}
+              style={{
+                backgroundColor: viewMode === 'daily' ? '#677d61' : 'transparent',
+                color: viewMode === 'daily' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151'),
+                boxShadow: viewMode === 'daily' ? '0 10px 25px rgba(103, 125, 97, 0.3)' : 'none'
+              }}
             >
-              <Calendar className="h-4 w-4 mr-2 inline" />
+              <Calendar className="h-4 w-4 mr-2 inline" style={{color: viewMode === 'daily' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151')}} />
               Daily
             </button>
             <button
               onClick={() => setViewMode('weekly')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'weekly'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
+                viewMode === 'weekly' 
+                  ? 'text-white shadow-xl scale-105' 
+                  : 'hover:scale-102'
               }`}
+              style={{
+                backgroundColor: viewMode === 'weekly' ? '#677d61' : 'transparent',
+                color: viewMode === 'weekly' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151'),
+                boxShadow: viewMode === 'weekly' ? '0 10px 25px rgba(103, 125, 97, 0.3)' : 'none'
+              }}
             >
-              <TrendingUp className="h-4 w-4 mr-2 inline" />
+              <TrendingUp className="h-4 w-4 mr-2 inline" style={{color: viewMode === 'weekly' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151')}} />
               Weekly
             </button>
           </div>
         </div>
 
         {/* Productivity Dashboard */}
-        <div className="mb-12">
-          <div className="rounded-lg p-8 bg-card border border-border">
-            <ProductivityDashboard 
-              key={lastRefreshTime || 'initial'}
-              timeRangeData={displayData.timeRangeData} 
-            />
-            
-            {emotionLoading ? (
-              <p className="text-sm mt-6 text-center text-muted-foreground">
-                Loading emotion data...
-              </p>
-            ) : emotionData ? (
-              <p className="text-sm mt-6 text-center text-muted-foreground">
-                Real-time emotion data from your Chrome extension
-              </p>
-            ) : (
-              <p className="text-sm mt-6 text-center text-muted-foreground">
+        <div className="mb-16">
+          <div className="rounded-2xl p-8 backdrop-blur-sm shadow-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+            <div>
+              <ProductivityDashboard 
+                timeRangeData={timeRangeData} 
+                isDarkMode={isDarkMode}
+                viewMode={viewMode}
+              />
+              
+              <p className="text-sm mt-8 text-center opacity-70" style={{color: darkModeStyles.textSecondary}}>
                 Sample data shown - Install the Chrome extension for real-time monitoring
               </p>
-            )}
+            </div>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div key={lastRefreshTime || 'initial'} className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          <div className="text-center group cursor-pointer transition-all duration-500 hover:scale-105 hover:-translate-y-2">
-            <div className="text-4xl font-bold mb-2 transition-all duration-500 group-hover:text-5xl text-primary">
-              {emotionLoading ? '...' : displayData.emotionTotals.focused}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <div className="text-center group cursor-pointer transition-all duration-700 ease-out hover:scale-105 hover:-translate-y-3 backdrop-blur-sm rounded-2xl p-8 shadow-lg border hover:shadow-2xl" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.8)' : 'rgba(255, 255, 255, 0.8)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+            <div 
+              className="text-5xl font-bold mb-3 transition-all duration-700 ease-out group-hover:text-6xl" 
+              style={{color: '#677d61'}}
+              key={`focused-${viewMode}`}
+            >
+              {Math.round(emotionTotals.focused)}
             </div>
-            <div className="text-lg transition-all duration-300 group-hover:text-xl text-foreground">
+            <div className="text-xl font-semibold transition-all duration-500 group-hover:text-2xl" style={{color: darkModeStyles.text}}>
               Focused
             </div>
-            <div className="text-sm transition-all duration-300 group-hover:opacity-80 text-muted-foreground">
+            <div className="text-sm transition-all duration-500 group-hover:opacity-80 opacity-70" style={{color: darkModeStyles.textSecondary}}>
               {viewMode === 'daily' ? 'hours today' : 'hours this week'}
             </div>
           </div>
           
-          <div className="text-center group cursor-pointer transition-all duration-500 hover:scale-105 hover:-translate-y-2">
-            <div className="text-4xl font-bold mb-2 transition-all duration-500 group-hover:text-5xl text-muted">
-              {emotionLoading ? '...' : displayData.emotionTotals.tired}
+          <div className="text-center group cursor-pointer transition-all duration-700 ease-out hover:scale-105 hover:-translate-y-3 backdrop-blur-sm rounded-2xl p-8 shadow-lg border hover:shadow-2xl" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.8)' : 'rgba(255, 255, 255, 0.8)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+            <div 
+              className="text-5xl font-bold mb-3 transition-all duration-700 ease-out group-hover:text-6xl" 
+              style={{color: '#93a57b'}}
+              key={`tired-${viewMode}`}
+            >
+              {Math.round(emotionTotals.tired)}
             </div>
-            <div className="text-lg transition-all duration-300 group-hover:text-xl text-foreground">
+            <div className="text-xl font-semibold transition-all duration-500 group-hover:text-2xl" style={{color: darkModeStyles.text}}>
               Tired
             </div>
-            <div className="text-sm transition-all duration-300 group-hover:opacity-80 text-muted-foreground">
+            <div className="text-sm transition-all duration-500 group-hover:opacity-80 opacity-70" style={{color: darkModeStyles.textSecondary}}>
               {viewMode === 'daily' ? 'hours today' : 'hours this week'}
             </div>
           </div>
           
-          <div className="text-center group cursor-pointer transition-all duration-500 hover:scale-105 hover:-translate-y-2">
-            <div className="text-4xl font-bold mb-2 transition-all duration-500 group-hover:text-5xl text-yellow-500">
-              {emotionLoading ? '...' : displayData.emotionTotals.stressed}
+          <div className="text-center group cursor-pointer transition-all duration-700 ease-out hover:scale-105 hover:-translate-y-3 backdrop-blur-sm rounded-2xl p-8 shadow-lg border hover:shadow-2xl" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.8)' : 'rgba(255, 255, 255, 0.8)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+            <div 
+              className="text-5xl font-bold mb-3 transition-all duration-700 ease-out group-hover:text-6xl" 
+              style={{color: '#fffd7a'}}
+              key={`stressed-${viewMode}`}
+            >
+              {Math.round(emotionTotals.stressed)}
             </div>
-            <div className="text-lg transition-all duration-300 group-hover:text-xl text-foreground">
+            <div className="text-xl font-semibold transition-all duration-500 group-hover:text-2xl" style={{color: darkModeStyles.text}}>
               Stressed
             </div>
-            <div className="text-sm transition-all duration-300 group-hover:opacity-80 text-muted-foreground">
+            <div className="text-sm transition-all duration-500 group-hover:opacity-80 opacity-70" style={{color: darkModeStyles.textSecondary}}>
               {viewMode === 'daily' ? 'hours today' : 'hours this week'}
             </div>
           </div>
         </div>
 
         {/* Analytics Section */}
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
+        <div className="grid md:grid-cols-2 gap-8 mb-16">
           {/* Insights */}
           <div 
-            className={`transition-all duration-500 ease-out cursor-pointer group ${
-              hoveredSection === 'insights' ? 'scale-105' : 'scale-100'
-            } ${hoveredSection && hoveredSection !== 'insights' ? 'opacity-60' : 'opacity-100'}`}
+            className="transition-all duration-700 ease-out cursor-pointer group"
+            style={{
+              transform: hoveredSection === 'insights' ? 'scale(1.02) translateY(-4px)' : 'scale(1)',
+              opacity: hoveredSection && hoveredSection !== 'insights' ? '0.6' : '1'
+            }}
             onMouseEnter={() => setHoveredSection('insights')}
             onMouseLeave={() => setHoveredSection(null)}
           >
-            <div className="flex items-center mb-6">
-              <div className="p-3 rounded-full transition-all duration-300 group-hover:scale-110 bg-primary">
-                <Brain className="h-6 w-6 text-primary-foreground" />
+            <div className="flex items-center mb-8">
+              <div className="p-4 rounded-2xl transition-all duration-500 group-hover:shadow-xl group-hover:scale-110" style={{backgroundColor: '#677d61'}}>
+                <Brain className="h-7 w-7 text-white" />
               </div>
-              <h2 className="text-2xl font-bold ml-4 transition-all duration-300 text-foreground">
+              <h2 className="text-3xl font-bold ml-6 transition-all duration-500" style={{color: darkModeStyles.text}}>
                 Insights
               </h2>
             </div>
-            <div className="text-center py-16 transition-all duration-500 group-hover:py-20 bg-card border border-border rounded-2xl">
-              <div className="transition-all duration-500 group-hover:scale-110">
-                <Brain className="h-16 w-16 mx-auto mb-6 opacity-60 text-primary" />
-                <p className="text-xl font-semibold mb-3 text-foreground">Data Analysis</p>
-                <p className="text-base text-muted-foreground">
+            <div className="text-center py-20 transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+              <div className="transition-all duration-500 group-hover:opacity-90">
+                <Brain className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#677d61'}} />
+                <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>Data Analysis</p>
+                <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
                   {viewMode === 'daily' 
                     ? 'Analyzing your daily emotional patterns and productivity trends' 
                     : 'Analyzing your weekly emotional patterns and productivity trends'
@@ -417,25 +434,27 @@ export default function Dashboard() {
 
           {/* Suggestions */}
           <div 
-            className={`transition-all duration-500 ease-out cursor-pointer group ${
-              hoveredSection === 'suggestions' ? 'scale-105' : 'scale-100'
-            } ${hoveredSection && hoveredSection !== 'suggestions' ? 'opacity-60' : 'opacity-100'}`}
+            className="transition-all duration-700 ease-out cursor-pointer group"
+            style={{
+              transform: hoveredSection === 'suggestions' ? 'scale(1.02) translateY(-4px)' : 'scale(1)',
+              opacity: hoveredSection && hoveredSection !== 'suggestions' ? '0.6' : '1'
+            }}
             onMouseEnter={() => setHoveredSection('suggestions')}
             onMouseLeave={() => setHoveredSection(null)}
           >
-            <div className="flex items-center mb-6">
-              <div className="p-3 rounded-full transition-all duration-300 group-hover:scale-110 bg-muted">
-                <Clock className="h-6 w-6 text-muted-foreground" />
+            <div className="flex items-center mb-8">
+              <div className="p-4 rounded-2xl transition-all duration-500 group-hover:shadow-xl group-hover:scale-110" style={{backgroundColor: '#93a57b'}}>
+                <Clock className="h-7 w-7 text-white" />
               </div>
-              <h2 className="text-2xl font-bold ml-4 transition-all duration-300 text-foreground">
+              <h2 className="text-3xl font-bold ml-6 transition-all duration-500" style={{color: darkModeStyles.text}}>
                 Suggestions
               </h2>
             </div>
-            <div className="text-center py-16 transition-all duration-500 group-hover:py-20 bg-card border border-border rounded-2xl">
-              <div className="transition-all duration-500 group-hover:scale-110">
-                <Clock className="h-16 w-16 mx-auto mb-6 opacity-60 text-muted" />
-                <p className="text-xl font-semibold mb-3 text-foreground">Personalized Recommendations</p>
-                <p className="text-base text-muted-foreground">
+            <div className="text-center py-20 transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+              <div className="transition-all duration-500 group-hover:opacity-90">
+                <Clock className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#93a57b'}} />
+                <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>Personalized Recommendations</p>
+                <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
                   {viewMode === 'daily' 
                     ? 'Get daily tips to optimize your productivity and well-being' 
                     : 'Get weekly recommendations to improve your work-life balance'

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WorkFlow AI</title>
+  <title>intentioni.ai</title>
   <style>
     * { 
       margin: 0; 
@@ -15,8 +15,8 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
       width: 380px; 
       min-height: 500px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #1f2937;
+      background: linear-gradient(135deg, #bfcc94 0%, #93a57b 100%);
+      color: #2c423f;
       overflow-x: hidden;
     }
     
@@ -79,8 +79,9 @@
     
     .app-subtitle {
       font-size: 14px;
-      color: rgba(255,255,255,0.8);
+      color: #fffd7a;
       font-weight: 400;
+      font-style: italic;
     }
     
     /* Card Styles */
@@ -297,7 +298,7 @@
     }
     
     .btn-primary {
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      background: #677d61;
       color: white;
       padding: 14px 20px;
       box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
@@ -450,30 +451,10 @@
       <div class="logo-container">
         <span class="logo-icon">🧠</span>
       </div>
-      <h1 class="app-title">WorkFlow AI</h1>
-      <p class="app-subtitle">Smart productivity companion</p>
+      <h1 class="app-title">intentioni.ai</h1>
+      <p class="app-subtitle">intentional productivity.</p>
     </div>
 
-    <!-- Status Card -->
-    <div class="card status-card">
-      <div class="status-header">
-        <span class="status-title">System Status</span>
-        <div id="status-indicator" class="status-indicator status-inactive">
-          <div class="status-dot"></div>
-          <span>Inactive</span>
-        </div>
-      </div>
-      <div class="status-details">
-        <div class="status-item">
-          <span class="status-label">Webcam</span>
-          <span class="status-value" id="webcam-status">Not active</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Last Detection</span>
-          <span class="status-value" id="last-detection">Never</span>
-        </div>
-      </div>
-    </div>
 
     <!-- Current Emotion Card -->
     <div class="card" id="current-emotion-card" style="display: none;">
@@ -508,22 +489,6 @@
         <div class="toggle active" id="notifications-toggle"></div>
       </div>
 
-      <!-- Notification Interval -->
-      <div class="control-item">
-        <div class="control-info">
-          <div class="control-title">Notification Interval</div>
-          <div class="control-description">How often to receive suggestions</div>
-        </div>
-      </div>
-      <div class="select-container">
-        <select id="notification-interval">
-          <option value="5">5 minutes</option>
-          <option value="10">10 minutes</option>
-          <option value="15" selected>15 minutes</option>
-          <option value="30">30 minutes</option>
-          <option value="60">1 hour</option>
-        </select>
-      </div>
     </div>
 
     <!-- Authentication Card -->
@@ -549,21 +514,8 @@
       <button id="open-dashboard" class="btn btn-primary">
         🚀 Open Dashboard
       </button>
-      <button id="test-notification" class="btn btn-secondary">
-        🔔 Test Notification
-      </button>
     </div>
 
-    <!-- Recent Emotions -->
-    <div class="card">
-      <div class="emotions-header">
-        <span class="emotions-title">Recent Emotions</span>
-        <span class="emotions-count" id="emotions-count">0</span>
-      </div>
-      <div id="recent-emotions">
-        <div class="no-data">No recent data available</div>
-      </div>
-    </div>
   </div>
 
   <script src="config.js"></script>
