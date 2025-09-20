@@ -7,9 +7,15 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LandingPage() {
-  const { user, error, isLoading } = useUser();
+  const { user: auth0User, error, isLoading: auth0Loading } = useUser();
+  const { user: customUser, isLoading: customLoading } = useAuth();
+  
+  // Check if user is logged in via either Auth0 or custom auth
+  const user = auth0User || customUser;
+  const isLoading = auth0Loading || customLoading;
 
   return (
     <div className="min-h-screen flex">
@@ -63,9 +69,9 @@ export default function LandingPage() {
                 <Link href="/auth">
                   <Button variant="ghost" className="login-button" style={{color: '#2c423f'}}>Log in</Button>
                 </Link>
-                <a href="/api/auth/login">
+                <Link href="/oauth">
                   <Button style={{backgroundColor: '#677d61', color: '#ffffff'}}>Get Started</Button>
-                </a>
+                </Link>
               </>
             )}
           </div>
@@ -89,11 +95,11 @@ export default function LandingPage() {
                 </Button>
               </Link>
             ) : (
-              <a href="/api/auth/login">
+              <Link href="/oauth">
                 <Button size="lg" className="text-white text-lg px-8 py-4 rounded-lg" style={{backgroundColor: '#677d61'}}>
                   Start Free Trial
                 </Button>
-              </a>
+              </Link>
             )}
             <Link href="/extension" className="ml-4">
               <Button size="lg" variant="outline" className="text-lg px-8 py-4" style={{color: '#2c423f', borderColor: '#677d61'}}>

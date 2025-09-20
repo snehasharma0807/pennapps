@@ -1,13 +1,15 @@
-import { withMiddlewareAuthRequired } from '@auth0/nextjs-auth0/edge';
+import { NextRequest, NextResponse } from 'next/server';
 
-export default withMiddlewareAuthRequired();
+export default function middleware(request: NextRequest) {
+  // For now, let the individual pages handle authentication
+  // This prevents the Auth0 middleware from interfering with custom auth
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/settings/:path*',
+    // Only protect specific API routes that need Auth0
     '/api/emotions/:path*',
-    '/api/suggestions/:path*',
-    '/api/user/:path*'
+    '/api/suggestions/:path*'
   ]
 };

@@ -7,13 +7,26 @@ import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import ProductivityDashboard from '@/components/ProductivityDashboard';
 
 export default function Dashboard() {
-  const { user, isLoading, error } = useUser();
+  const { user: auth0User, isLoading: auth0Loading, error: auth0Error } = useUser();
+  const { user: customUser, isLoading: customLoading, logout: customLogout } = useAuth();
   const { resolvedTheme } = useTheme();
   const router = useRouter();
+  
+  // Determine which user is logged in and loading state
+  // Prioritize custom auth over Auth0 to avoid conflicts
+  const user = customUser || auth0User;
+  const isLoading = customLoading || auth0Loading;
+  const error = auth0Error;
+  
+  // Determine authentication method for logout
+  const isCustomAuth = !!customUser;
+  const isAuth0Auth = !!auth0User && !customUser;
+
   const [viewMode, setViewMode] = useState<'daily' | 'weekly'>('daily');
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
 
@@ -32,11 +45,13 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/api/auth/login');
+    // Only redirect if both Auth0 and custom auth are done loading and no user is found
+    if (!auth0Loading && !customLoading && !user) {
+      // Redirect to custom auth page instead of Auth0 login
+      router.push('/auth');
       return;
     }
-  }, [user, isLoading, router]);
+  }, [user, auth0Loading, customLoading, router]);
 
   if (isLoading) {
     return (
@@ -56,7 +71,7 @@ export default function Dashboard() {
           <div className="text-red-600 text-6xl mb-4">❌</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Authentication Error</h1>
           <p className="text-gray-600 mb-4">{error.message}</p>
-          <Link href="/api/auth/login">
+          <Link href="/auth">
             <Button>Try Again</Button>
           </Link>
         </div>
@@ -102,11 +117,21 @@ export default function Dashboard() {
               <div className="text-sm text-muted-foreground">
                 Welcome, {user.name || user.email || 'User'}
               </div>
-              <Link href="/api/auth/logout">
-                <Button variant="outline" size="sm">
+              {isAuth0Auth ? (
+                <Link href="/api/auth/logout">
+                  <Button variant="outline" size="sm">
+                    Logout
+                  </Button>
+                </Link>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={customLogout}
+                >
                   Logout
                 </Button>
-              </Link>
+              )}
             </div>
           </div>
         </div>

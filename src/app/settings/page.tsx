@@ -8,6 +8,7 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UserSettings {
   notificationInterval: number;
@@ -16,8 +17,13 @@ interface UserSettings {
 }
 
 export default function SettingsPage() {
-  const { user, isLoading } = useUser();
+  const { user: auth0User, isLoading: auth0Loading } = useUser();
+  const { user: customUser, isLoading: customLoading } = useAuth();
   const router = useRouter();
+  
+  // Check if user is logged in via either Auth0 or custom auth
+  const user = auth0User || customUser;
+  const isLoading = auth0Loading || customLoading;
   const [settings, setSettings] = useState<UserSettings>({
     notificationInterval: 15,
     notificationsEnabled: true,
@@ -30,7 +36,12 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push('/api/auth/login');
+      // Redirect to appropriate auth page based on what's available
+      if (auth0User) {
+        router.push('/api/auth/login');
+      } else {
+        router.push('/auth');
+      }
       return;
     }
     
@@ -38,18 +49,30 @@ export default function SettingsPage() {
     if (user) {
       fetchUserSettings();
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, auth0User]);
 
   const fetchUserSettings = async () => {
     setIsLoadingSettings(true);
     try {
-      const response = await fetch('/api/user');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add JWT token for custom auth users
+      if (customUser && !auth0User) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+      
+      const response = await fetch('/api/user', { headers });
       if (response.ok) {
         const userData = await response.json();
         setSettings({
-          notificationInterval: userData.settings?.notificationInterval || 15,
-          notificationsEnabled: userData.settings?.notificationsEnabled ?? true,
-          webcamEnabled: userData.settings?.webcamEnabled ?? true
+          notificationInterval: userData.user?.settings?.notificationInterval || 15,
+          notificationsEnabled: userData.user?.settings?.notificationsEnabled ?? true,
+          webcamEnabled: userData.user?.settings?.webcamEnabled ?? true
         });
       }
     } catch (error) {
@@ -66,12 +89,22 @@ export default function SettingsPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout for saving
       
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add JWT token for custom auth users
+      if (customUser && !auth0User) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+      
       const response = await fetch('/api/user', {
         method: 'PUT',
         signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           settings: {
             notificationInterval: settings.notificationInterval,
@@ -108,19 +141,37 @@ export default function SettingsPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for deletion
       
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add JWT token for custom auth users
+      if (customUser && !auth0User) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+      
       const response = await fetch('/api/user', {
         method: 'DELETE',
         signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers,
       });
       
       clearTimeout(timeoutId);
 
       if (response.ok) {
         alert('Account deleted successfully. You will be logged out.');
-        window.location.href = '/api/auth/logout';
+        // Handle logout based on auth type
+        if (customUser && !auth0User) {
+          // Custom auth logout
+          localStorage.removeItem('token');
+          window.location.href = '/';
+        } else {
+          // Auth0 logout
+          window.location.href = '/api/auth/logout';
+        }
       } else {
         const errorData = await response.json().catch(() => ({}));
         alert(`Failed to delete account: ${errorData.error || 'Unknown error'}`);
