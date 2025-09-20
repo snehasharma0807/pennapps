@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, BarChart3, Brain, Clock, Calendar, TrendingUp, Settings, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, BarChart3, Brain, Clock, Calendar, TrendingUp, Settings, Moon, Sun, Sparkles, Loader2, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 // import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,10 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState<'daily' | 'weekly'>('daily');
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [generatedInsights, setGeneratedInsights] = useState<string | null>(null);
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const [generatedSuggestions, setGeneratedSuggestions] = useState<string | null>(null);
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
 
   // Initialize dark mode from localStorage
   useEffect(() => {
@@ -30,6 +34,12 @@ export default function Dashboard() {
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
+
+  // Clear insights and suggestions when view mode changes
+  useEffect(() => {
+    setGeneratedInsights(null);
+    setGeneratedSuggestions(null);
+  }, [viewMode]);
 
   // Dark mode styles
   const darkModeStyles = {
@@ -64,6 +74,80 @@ export default function Dashboard() {
     focused: timeRangeData.reduce((sum, range) => sum + range.emotions.focused, 0),
     tired: timeRangeData.reduce((sum, range) => sum + range.emotions.tired, 0),
     stressed: timeRangeData.reduce((sum, range) => sum + range.emotions.stressed, 0)
+  };
+
+  // Function to generate insights using Gemini API
+  const generateInsights = async () => {
+    setIsGeneratingInsights(true);
+    try {
+      console.log('Sending request to /api/insights with data:', { emotionData: timeRangeData, viewMode });
+      
+      const response = await fetch('/api/insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          emotionData: timeRangeData,
+          viewMode: viewMode
+        }),
+      });
+
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Received insights:', data);
+      setGeneratedInsights(data.insights);
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setGeneratedInsights(`❌ Failed to generate insights: ${errorMessage}\n\nPlease check:\n• Gemini API key is set in environment variables\n• Network connection is working\n• Try refreshing the page and trying again`);
+    } finally {
+      setIsGeneratingInsights(false);
+    }
+  };
+
+  // Function to generate suggestions using Gemini API
+  const generateSuggestions = async () => {
+    setIsGeneratingSuggestions(true);
+    try {
+      console.log('Sending request to /api/suggestions-productivity with data:', { emotionData: timeRangeData, viewMode });
+      
+      const response = await fetch('/api/suggestions-productivity', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          emotionData: timeRangeData,
+          viewMode: viewMode
+        }),
+      });
+
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Received suggestions:', data);
+      setGeneratedSuggestions(data.suggestions);
+    } catch (error) {
+      console.error('Error generating suggestions:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setGeneratedSuggestions(`❌ Failed to generate suggestions: ${errorMessage}\n\nPlease check:\n• Gemini API key is set in environment variables\n• Network connection is working\n• Try refreshing the page and trying again`);
+    } finally {
+      setIsGeneratingSuggestions(false);
+    }
   };
 
   useEffect(() => {
@@ -273,26 +357,86 @@ export default function Dashboard() {
             onMouseEnter={() => setHoveredSection('insights')}
             onMouseLeave={() => setHoveredSection(null)}
           >
-            <div className="flex items-center mb-8">
-              <div className="p-4 rounded-2xl transition-all duration-500 group-hover:shadow-xl group-hover:scale-110" style={{backgroundColor: '#677d61'}}>
-                <Brain className="h-7 w-7 text-white" />
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center">
+                <div className="p-4 rounded-2xl transition-all duration-500 group-hover:shadow-xl group-hover:scale-110" style={{backgroundColor: '#677d61'}}>
+                  <Brain className="h-7 w-7 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold ml-6 transition-all duration-500" style={{color: darkModeStyles.text}}>
+                  Insights
+                </h2>
               </div>
-              <h2 className="text-3xl font-bold ml-6 transition-all duration-500" style={{color: darkModeStyles.text}}>
-                Insights
-              </h2>
+              <Button
+                onClick={generateInsights}
+                disabled={isGeneratingInsights}
+                className="transition-all duration-300 hover:scale-105"
+                style={{
+                  backgroundColor: '#677d61',
+                  color: 'white',
+                  border: 'none'
+                }}
+              >
+                {isGeneratingInsights ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate Insights
+                  </>
+                )}
+              </Button>
             </div>
-            <div className="text-center py-20 transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
-              <div className="transition-all duration-500 group-hover:opacity-90">
-                <Brain className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#677d61'}} />
-                <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>Data Analysis</p>
-                <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
-                  {viewMode === 'daily' 
-                    ? 'Analyzing your daily emotional patterns and productivity trends' 
-                    : 'Analyzing your weekly emotional patterns and productivity trends'
-                  }
-                </p>
+            
+            {generatedInsights ? (
+              <div className="transition-all duration-500 backdrop-blur-sm rounded-2xl border p-6 relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+                  <div className="space-y-3">
+                    <h3 className="text-xl font-semibold mb-4" style={{color: darkModeStyles.text}}>
+                      Google Gemini Powered Insights
+                    </h3>
+                    {generatedInsights.includes('most focused during') && (
+                      <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-200" style={{backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)', borderColor: isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'}}>
+                        <p className="text-sm" style={{color: darkModeStyles.text}}>
+                          💡 <strong>Demo Mode:</strong> Using sample insights. To get real AI analysis, add your Gemini API key to <code>.env.local</code>
+                        </p>
+                      </div>
+                    )}
+                  <div 
+                    className="prose prose-sm max-w-none"
+                    style={{color: darkModeStyles.text}}
+                  >
+                    {generatedInsights.split('\n').map((line, index) => (
+                      <div key={index} className="mb-2">
+                        {line.trim() && (
+                          <div className="flex items-start space-x-2">
+                            {line.startsWith('•') && (
+                              <span className="text-green-600 mt-1">•</span>
+                            )}
+                            <span 
+                              dangerouslySetInnerHTML={{
+                                __html: line.replace(/^•\s*/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-20 transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+                <div className="transition-all duration-500 group-hover:opacity-90">
+                  <Brain className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#677d61'}} />
+                  <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>AI-Powered Analysis</p>
+                  <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
+                    Click "Generate Insights" to get personalized analysis of your productivity patterns
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Suggestions */}
@@ -305,26 +449,86 @@ export default function Dashboard() {
             onMouseEnter={() => setHoveredSection('suggestions')}
             onMouseLeave={() => setHoveredSection(null)}
           >
-            <div className="flex items-center mb-8">
-              <div className="p-4 rounded-2xl transition-all duration-500 group-hover:shadow-xl group-hover:scale-110" style={{backgroundColor: '#93a57b'}}>
-                <Clock className="h-7 w-7 text-white" />
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center">
+                <div className="p-4 rounded-2xl transition-all duration-500 group-hover:shadow-xl group-hover:scale-110" style={{backgroundColor: '#93a57b'}}>
+                  <Lightbulb className="h-7 w-7 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold ml-6 transition-all duration-500" style={{color: darkModeStyles.text}}>
+                  Suggestions
+                </h2>
               </div>
-              <h2 className="text-3xl font-bold ml-6 transition-all duration-500" style={{color: darkModeStyles.text}}>
-                Suggestions
-              </h2>
+              <Button
+                onClick={generateSuggestions}
+                disabled={isGeneratingSuggestions}
+                className="transition-all duration-300 hover:scale-105"
+                style={{
+                  backgroundColor: '#93a57b',
+                  color: 'white',
+                  border: 'none'
+                }}
+              >
+                {isGeneratingSuggestions ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Lightbulb className="h-4 w-4 mr-2" />
+                    Get Suggestions
+                  </>
+                )}
+              </Button>
             </div>
-            <div className="text-center py-20 transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
-              <div className="transition-all duration-500 group-hover:opacity-90">
-                <Clock className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#93a57b'}} />
-                <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>Personalized Recommendations</p>
-                <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
-                  {viewMode === 'daily' 
-                    ? 'Get daily tips to optimize your productivity and well-being' 
-                    : 'Get weekly recommendations to improve your work-life balance'
-                  }
-                </p>
+            
+            {generatedSuggestions ? (
+              <div className="transition-all duration-500 backdrop-blur-sm rounded-2xl border p-6 relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold mb-4" style={{color: darkModeStyles.text}}>
+                    AI-Powered Productivity Suggestions
+                  </h3>
+                  {generatedSuggestions.includes('Schedule important tasks') && (
+                    <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200" style={{backgroundColor: isDarkMode ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.05)', borderColor: isDarkMode ? 'rgba(34, 197, 94, 0.3)' : 'rgba(34, 197, 94, 0.2)'}}>
+                      <p className="text-sm" style={{color: darkModeStyles.text}}>
+                        💡 <strong>Demo Mode:</strong> Using sample suggestions. To get real AI recommendations, add your Gemini API key to <code>.env.local</code>
+                      </p>
+                    </div>
+                  )}
+                  <div 
+                    className="prose prose-sm max-w-none"
+                    style={{color: darkModeStyles.text}}
+                  >
+                    {generatedSuggestions.split('\n').map((line, index) => (
+                      <div key={index} className="mb-2">
+                        {line.trim() && (
+                          <div className="flex items-start space-x-2">
+                            {line.startsWith('•') && (
+                              <span className="text-green-600 mt-1">•</span>
+                            )}
+                            <span 
+                              dangerouslySetInnerHTML={{
+                                __html: line.replace(/^•\s*/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-20 transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+                <div className="transition-all duration-500 group-hover:opacity-90">
+                  <Lightbulb className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#93a57b'}} />
+                  <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>AI-Powered Recommendations</p>
+                  <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
+                    Click "Get Suggestions" to receive personalized productivity tips based on your data patterns
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
