@@ -24,7 +24,8 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "run_at": "document_end"
+      "run_at": "document_end",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
@@ -32,8 +33,5 @@
       "resources": ["face-detection.js", "emotion-test.html"],
       "matches": ["<all_urls>"]
     }
-  ],
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self';"
-  }
+  ]
 }

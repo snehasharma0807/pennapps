@@ -43,15 +43,167 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'testNotification':
       showTestNotification();
       break;
+    case 'injectFaceApi':
+      // Inject face-api.js into the current tab to bypass CSP
+      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        if (tabs[0] && !tabs[0].url.startsWith('chrome://') && !tabs[0].url.startsWith('chrome-extension://')) {
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id },
+              function: () => {
+                return new Promise((resolve) => {
+                  if (typeof faceapi !== 'undefined') {
+                    resolve({ success: true, message: 'Face-api.js already loaded' });
+                    return;
+                  }
+
+                  const script = document.createElement('script');
+                  script.src = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js';
+                  script.onload = () => {
+                    console.log('✅ Face-api.js loaded via background script injection');
+                    resolve({ success: true, message: 'Face-api.js loaded successfully' });
+                  };
+                  script.onerror = () => {
+                    console.log('❌ Face-api.js failed to load');
+                    resolve({ success: false, message: 'Face-api.js failed to load' });
+                  };
+                  document.head.appendChild(script);
+                });
+              }
+            });
+            sendResponse({ success: true });
+          } catch (error) {
+            console.error('Failed to inject face-api.js:', error);
+            sendResponse({ success: false, error: error.message });
+          }
+        } else {
+          sendResponse({ success: false, error: 'Cannot inject into this page' });
+        }
+      });
+      return true; // Keep the message channel open for async response
+    case 'testContentScript':
+      // Test if content script is working
+      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        if (tabs[0] && !tabs[0].url.startsWith('chrome://') && !tabs[0].url.startsWith('chrome-extension://')) {
+          try {
+            console.log('🧪 Testing content script from background script');
+            console.log('📊 Tab details:', {
+              id: tabs[0].id,
+              url: tabs[0].url,
+              status: tabs[0].status
+            });
+            
+            // First, try to inject the content script manually
+            console.log('🔄 Attempting to inject content script manually...');
+            try {
+              await chrome.scripting.executeScript({
+                target: { tabId: tabs[0].id },
+                files: ['content.js']
+              });
+              console.log('✅ Content script injected manually');
+              
+              // Wait a moment for it to load
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } catch (injectError) {
+              console.log('⚠️ Manual injection failed:', injectError.message);
+            }
+            
+            // Test using the minimal content script
+            const results = await chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id },
+              function: () => {
+                console.log('🧪 Testing minimal content script from background script');
+                console.log('🔍 Window object available:', typeof window !== 'undefined');
+                console.log('🔍 Document available:', typeof document !== 'undefined');
+                console.log('🔍 Chrome available:', typeof chrome !== 'undefined');
+                
+                // Try to call the content script functions
+                if (typeof window.startEmotionDetection === 'function') {
+                  console.log('✅ Found startEmotionDetection function!');
+                  return {
+                    success: true,
+                    startEmotionDetection: typeof window.startEmotionDetection,
+                    stopEmotionDetection: typeof window.stopEmotionDetection,
+                    getEmotionDetector: typeof window.getEmotionDetector,
+                    url: window.location.href,
+                    timestamp: new Date().toISOString()
+                  };
+                } else {
+                  console.log('❌ startEmotionDetection not found');
+                  return {
+                    success: false,
+                    error: 'startEmotionDetection not found',
+                    url: window.location.href,
+                    timestamp: new Date().toISOString()
+                  };
+                }
+              }
+            });
+            
+            if (results && results[0]) {
+              console.log('📊 Content script test results:', results[0].result);
+              sendResponse({ success: true, results: results[0].result });
+            } else {
+              console.log('❌ No results from content script test');
+              sendResponse({ success: false, error: 'No results from content script test' });
+            }
+          } catch (error) {
+            console.error('❌ Failed to test content script:', error);
+            sendResponse({ success: false, error: error.message });
+          }
+        } else {
+          console.log('❌ Cannot test on this page:', tabs[0] ? tabs[0].url : 'No tab');
+          sendResponse({ success: false, error: 'Cannot test on this page' });
+        }
+      });
+      return true; // Keep the message channel open for async response
     case 'emotionDetected':
+      console.log('📨 Received emotion from content script:', message);
+      console.log('📊 Current emotionHistory length:', emotionHistory.length);
       handleEmotionDetected(message.emotion, message.confidence, message.timestamp);
+      console.log('📈 After handling, emotionHistory length:', emotionHistory.length);
       break;
     case 'getStatus':
-      sendResponse({
-        isDetecting: isDetecting,
-        lastDetection: emotionHistory.length > 0 ? emotionHistory[emotionHistory.length - 1] : null,
-        totalDetections: emotionHistory.length,
-        hourlyCount: currentHourEmotions.length
+      // Get status from content script if available
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0] && !tabs[0].url.startsWith('chrome://') && !tabs[0].url.startsWith('chrome-extension://')) {
+          chrome.scripting.executeScript({
+            target: { tabId: tabs[0].id },
+            function: () => {
+              if (window.getEmotionDetector) {
+                const detector = window.getEmotionDetector();
+                return {
+                  isDetecting: detector ? detector.isDetecting : false,
+                  lastDetection: detector ? detector.lastDetection : null,
+                  totalDetections: detector ? detector.emotionHistory.length : 0
+                };
+              }
+              return null;
+            }
+          }, (results) => {
+            const contentStatus = results && results[0] ? results[0].result : null;
+            sendResponse({
+              isDetecting: contentStatus ? contentStatus.isDetecting : isDetecting,
+              lastDetection: contentStatus ? contentStatus.lastDetection : (emotionHistory.length > 0 ? emotionHistory[emotionHistory.length - 1] : null),
+              totalDetections: contentStatus ? contentStatus.totalDetections : emotionHistory.length,
+              hourlyCount: currentHourEmotions.length
+            });
+          });
+        } else {
+          sendResponse({
+            isDetecting: isDetecting,
+            lastDetection: emotionHistory.length > 0 ? emotionHistory[emotionHistory.length - 1] : null,
+            totalDetections: emotionHistory.length,
+            hourlyCount: currentHourEmotions.length
+          });
+        }
+      });
+      return true; // Keep the message channel open for async response
+    case 'getRecentEmotions':
+      // Send recent emotions to popup
+      chrome.runtime.sendMessage({
+        action: 'updateRecentEmotions',
+        emotions: emotionHistory.slice(-10)
       });
       break;
   }
@@ -60,22 +212,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Start webcam monitoring
 async function startWebcamMonitoring() {
   try {
-    // Request webcam permission
-    webcamStream = await navigator.mediaDevices.getUserMedia({
-      video: { 
-        width: { ideal: 640 },
-        height: { ideal: 480 },
-        facingMode: 'user'
-      }
-    });
+    // Get the active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+      console.error('No active tab found');
+      return;
+    }
 
-    console.log('Webcam access granted');
-    
-    // Initialize emotion detector
-    await initializeEmotionDetector();
-    
-    // Start continuous detection
-    startContinuousDetection();
+    // Check if we're on a chrome:// URL
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      console.error('Cannot access webcam on chrome:// URLs');
+      return;
+    }
+
+    // Request webcam permission through content script
+    await requestWebcamPermission(tab.id);
     
     // Start hourly summary timer
     startHourlySummary();
@@ -87,13 +238,153 @@ async function startWebcamMonitoring() {
   }
 }
 
-// Function to inject into content script
-function startFaceDetection(stream) {
-  window.startEmotionDetection(stream);
+// Request webcam permission through content script
+async function requestWebcamPermission(tabId) {
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      function: async () => {
+        try {
+          // Request webcam permission
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              facingMode: 'user'
+            }
+          });
+
+          console.log('✅ Webcam access granted');
+          
+          // Store the stream globally so we can stop it later
+          window.webcamStream = stream;
+          console.log('📹 Stream stored globally:', {
+            isStream: stream instanceof MediaStream,
+            hasGetTracks: typeof stream.getTracks === 'function',
+            trackCount: stream.getTracks ? stream.getTracks().length : 'N/A'
+          });
+          
+          // Start emotion detection immediately
+          if (window.startEmotionDetection) {
+            window.startEmotionDetection(stream);
+            console.log('✅ Emotion detection started');
+          } else {
+            console.error('❌ startEmotionDetection function not available in content script');
+            console.log('🔄 Trying to send message to content script...');
+            
+            // Send a message to the content script to initialize
+            // Note: We can't send MediaStream objects through messages, so we'll use the global reference
+            chrome.tabs.sendMessage(tabId, { action: 'initializeAndStart' }, (response) => {
+              if (chrome.runtime.lastError) {
+                console.error('❌ Failed to send message to content script:', chrome.runtime.lastError);
+                console.log('🔄 Content script may not be loaded yet, trying direct injection...');
+                
+                // Try to inject the content script directly
+                chrome.scripting.executeScript({
+                  target: { tabId: tabId },
+                  files: ['content.js']
+                }).then(() => {
+                  console.log('✅ Content script injected, trying again...');
+                  // Wait a moment and try again
+                  setTimeout(() => {
+                    chrome.tabs.sendMessage(tabId, { action: 'initializeAndStart', stream: stream }, (retryResponse) => {
+                      if (retryResponse && retryResponse.success) {
+                        console.log('✅ Content script initialized after injection');
+                      } else {
+                        console.error('❌ Still failed after injection');
+                      }
+                    });
+                  }, 1000);
+                }).catch((error) => {
+                  console.error('❌ Failed to inject content script:', error);
+                });
+              } else if (response && response.success) {
+                console.log('✅ Content script initialized and emotion detection started');
+              } else {
+                console.error('❌ Content script initialization failed:', response);
+              }
+            });
+          }
+          
+          return stream;
+        } catch (error) {
+          console.error('Failed to get webcam access:', error);
+          throw error;
+        }
+      }
+    });
+    
+    // Store the stream reference in background script
+    if (results && results[0] && results[0].result) {
+      webcamStream = results[0].result;
+    }
+  } catch (error) {
+    console.error('Failed to request webcam permission:', error);
+    throw error;
+  }
+}
+
+// Show notification function
+function showNotification(title, message) {
+  try {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon48.svg',
+      title: title,
+      message: message,
+      priority: 1
+    });
+  } catch (error) {
+    console.error('Failed to show notification:', error);
+  }
 }
 
 // Stop webcam monitoring
-function stopWebcamMonitoring() {
+async function stopWebcamMonitoring() {
+  try {
+    // Stop emotion detection and webcam stream in content script
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
+      // Use the content script's stopEmotionDetection function
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: () => {
+          // Call the content script's stop function
+          if (window.stopEmotionDetection) {
+            window.stopEmotionDetection();
+            console.log('Called stopEmotionDetection from content script');
+          } else {
+            console.log('stopEmotionDetection function not available, trying direct approach');
+            
+            // Fallback: direct approach
+            if (window.emotionDetector) {
+              window.emotionDetector.stopDetection();
+            }
+            
+            // Stop webcam stream
+            if (window.webcamStream) {
+              window.webcamStream.getTracks().forEach(track => {
+                track.stop();
+                console.log('Webcam track stopped:', track.kind);
+              });
+              window.webcamStream = null;
+            }
+            
+            // Remove video element
+            const video = document.getElementById('workflow-ai-video');
+            if (video) {
+              video.remove();
+              console.log('Video element removed');
+            }
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error stopping emotion detection:', error);
+  }
+
+  // Also stop any background stream reference
   if (webcamStream) {
     webcamStream.getTracks().forEach(track => track.stop());
     webcamStream = null;
@@ -143,29 +434,7 @@ async function initializeEmotionDetector() {
   }
 }
 
-// Start continuous emotion detection
-function startContinuousDetection() {
-  if (emotionDetectionInterval) {
-    clearInterval(emotionDetectionInterval);
-  }
 
-  isDetecting = true;
-  
-  emotionDetectionInterval = setInterval(async () => {
-    if (!isDetecting) return;
-    
-    try {
-      const emotion = await detectEmotionFromTab();
-      if (emotion) {
-        await handleEmotionDetected(emotion.emotion, emotion.confidence, new Date().toISOString());
-      }
-    } catch (error) {
-      console.error('Continuous detection error:', error);
-    }
-  }, 5000); // Check every 5 seconds
-
-  console.log('Continuous emotion detection started');
-}
 
 // Detect emotion from active tab
 async function detectEmotionFromTab() {
@@ -343,6 +612,14 @@ async function handleEmotionDetected(emotion, confidence = 0.8, timestamp = null
     emotions: emotionHistory.slice(-10)
   });
 
+  // Send current emotion to popup immediately
+  chrome.runtime.sendMessage({
+    action: 'emotionDetected',
+    emotion: emotion,
+    confidence: confidence,
+    timestamp: detectionTime.toISOString()
+  });
+
   // Send to API
   try {
     await sendEmotionToAPI(emotion, confidence);
@@ -408,6 +685,7 @@ async function showEmotionNotification(emotion) {
     
     chrome.notifications.create({
       type: 'basic',
+      iconUrl: 'icons/icon48.svg',
       title: `WorkFlow AI - ${emotion.charAt(0).toUpperCase() + emotion.slice(1)} Detected`,
       message: suggestion,
       priority: 1
@@ -432,6 +710,7 @@ async function getAISuggestion(emotion) {
 function showTestNotification() {
   chrome.notifications.create({
     type: 'basic',
+    iconUrl: 'icons/icon48.svg',
     title: 'WorkFlow AI Test',
     message: 'This is a test notification. Your extension is working correctly!',
     priority: 1
