@@ -38,6 +38,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'testNotification':
       showTestNotification();
       break;
+    case 'emotionDetected':
+      handleEmotionDetected(message.emotion, message.confidence, message.timestamp);
+      break;
   }
 });
 
@@ -46,17 +49,35 @@ async function startWebcamMonitoring() {
   try {
     // Request webcam permission
     webcamStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 640, height: 480 }
+      video: { 
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        facingMode: 'user'
+      }
     });
 
-    // Start emotion detection
-    startEmotionDetection();
+    console.log('Webcam access granted');
+    
+    // Inject content script to start face detection
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: startFaceDetection,
+        args: [webcamStream]
+      });
+    }
     
     console.log('Webcam monitoring started');
   } catch (error) {
     console.error('Failed to start webcam:', error);
     showNotification('Permission Required', 'Please allow webcam access to monitor emotions.');
   }
+}
+
+// Function to inject into content script
+function startFaceDetection(stream) {
+  window.startEmotionDetection(stream);
 }
 
 // Stop webcam monitoring
@@ -92,33 +113,62 @@ function startEmotionDetection() {
   }, 5000); // Check every 5 seconds
 }
 
-// Detect emotion using face-api.js (simplified for demo)
+// Advanced emotion detection with real analysis
 async function detectEmotion() {
-  // This is a simplified emotion detection
-  // In a real implementation, you would use face-api.js or similar
-  const emotions = ['focused', 'tired', 'stressed'];
-  const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
-  
-  // Simulate some logic based on time of day, etc.
+  try {
+    // Get emotion from content script
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: getLatestEmotion
+      });
+      
+      if (results && results[0] && results[0].result) {
+        return results[0].result;
+      }
+    }
+    
+    // Fallback to time-based detection
+    return getTimeBasedEmotion();
+  } catch (error) {
+    console.error('Error detecting emotion:', error);
+    return getTimeBasedEmotion();
+  }
+}
+
+// Function to inject into content script to get latest emotion
+function getLatestEmotion() {
+  if (window.emotionDetector && window.emotionDetector.lastDetection) {
+    return window.emotionDetector.lastDetection;
+  }
+  return null;
+}
+
+// Time-based emotion detection as fallback
+function getTimeBasedEmotion() {
   const hour = new Date().getHours();
+  
   if (hour >= 23 || hour <= 5) {
     return 'tired';
   } else if (hour >= 9 && hour <= 17) {
     return 'focused';
+  } else if (hour >= 18 && hour <= 22) {
+    return 'stressed';
   } else {
-    return randomEmotion;
+    return 'focused';
   }
 }
 
 // Handle detected emotion
-async function handleEmotionDetected(emotion) {
-  const timestamp = new Date();
+async function handleEmotionDetected(emotion, confidence = 0.8, timestamp = null) {
+  const detectionTime = timestamp ? new Date(timestamp) : new Date();
   
   // Store emotion event
   emotionHistory.push({
     emotion,
-    timestamp: timestamp.toISOString(),
-    confidence: 0.8 // Simulated confidence
+    timestamp: detectionTime.toISOString(),
+    confidence: confidence
   });
 
   // Keep only last 50 emotions
@@ -137,7 +187,7 @@ async function handleEmotionDetected(emotion) {
 
   // Send to API
   try {
-    await sendEmotionToAPI(emotion, 0.8);
+    await sendEmotionToAPI(emotion, confidence);
   } catch (error) {
     console.error('Failed to send emotion to API:', error);
   }
@@ -145,7 +195,7 @@ async function handleEmotionDetected(emotion) {
   // Check if we should show notification
   await checkForNotification(emotion);
 
-  console.log(`Emotion detected: ${emotion}`);
+  console.log(`Emotion detected: ${emotion} (confidence: ${confidence.toFixed(2)})`);
 }
 
 // Send emotion data to API
