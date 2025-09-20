@@ -2,18 +2,17 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, User, Mail, Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
-import { useUser } from '@auth0/nextjs-auth0/client';
+// import { useUser } from '@auth0/nextjs-auth0/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { validatePassword } from '@/lib/password';
 
 export default function AuthPage() {
-  const { user: auth0User, isLoading: auth0Loading } = useUser();
-  const { user: customUser, login } = useAuth();
+  // const { user, isLoading } = useUser();
+  const user = null; // No user for now
+  const isLoading = false;
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,90 +22,24 @@ export default function AuthPage() {
     password: '',
     confirmPassword: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [passwordValidation, setPasswordValidation] = useState<{ valid: boolean; errors: string[] }>({ valid: false, errors: [] });
 
   useEffect(() => {
-    // If user is already logged in via either Auth0 or custom auth, redirect to dashboard
-    if (auth0User || customUser) {
-      console.log('User already logged in, redirecting to dashboard');
+    if (user) {
       router.push('/dashboard');
     }
-  }, [auth0User, customUser, router]);
+  }, [user, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('Input changed:', e.target.name, e.target.value);
-    const newFormData = {
+    setFormData({
       ...formData,
       [e.target.name]: e.target.value
-    };
-    setFormData(newFormData);
-    
-    // Validate password in real-time for signup
-    if (e.target.name === 'password' && !isLogin) {
-      const validation = validatePassword(e.target.value);
-      setPasswordValidation(validation);
-    }
+    });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted with data:', formData);
-    setIsSubmitting(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      // Validate passwords match for registration
-      if (!isLogin && formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Validate password strength for registration
-      if (!isLogin && !passwordValidation.valid) {
-        setError('Password does not meet requirements. Please check the requirements below.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      const endpoint = isLogin ? '/api/auth/custom-login' : '/api/auth/custom-register';
-      const payload = isLogin 
-        ? { email: formData.email, password: formData.password }
-        : { email: formData.email, password: formData.password, name: formData.name };
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong');
-      }
-
-      // Store token and redirect
-      if (data.token) {
-        login(data.token, data.user);
-        setSuccess(isLogin ? 'Login successful!' : 'Account created successfully!');
-        
-        // Redirect to dashboard after a short delay
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1500);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Handle form submission logic here
+    console.log('Form submitted:', formData);
   };
 
   return (
@@ -159,33 +92,45 @@ export default function AuthPage() {
             </p>
           </div>
 
-          {/* Alternative Options */}
-          <div className="text-center mb-8">
-            <p className="text-sm mb-4" style={{color: '#93a57b'}}>
-              Prefer social login?
-            </p>
-            <Link href="/oauth">
-              <Button 
-                variant="outline"
-                className="w-full py-3 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105"
-                style={{borderColor: '#e5e7eb', color: '#2c423f'}}
-              >
-                Sign in with Google
-              </Button>
-            </Link>
+          {/* OAuth Buttons */}
+          <div className="space-y-4 mb-8">
+            <Button 
+              type="button"
+              variant="outline"
+              className="w-full py-4 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center"
+              style={{borderColor: '#e5e7eb', color: '#2c423f'}}
+            >
+              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Continue with Google
+            </Button>
+            
+            <Button 
+              type="button"
+              variant="outline"
+              className="w-full py-4 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center"
+              style={{borderColor: '#e5e7eb', color: '#2c423f'}}
+            >
+              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
+                <path fill="#00BCF2" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
+              </svg>
+              Continue with Microsoft
+            </Button>
           </div>
 
-          {/* Error/Success Messages */}
-          {error && (
-            <div className="mb-6 p-4 rounded-lg border-2" style={{backgroundColor: '#fef2f2', borderColor: '#fecaca', color: '#dc2626'}}>
-              {error}
+          {/* Divider */}
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t" style={{borderColor: '#e5e7eb'}}></div>
             </div>
-          )}
-          {success && (
-            <div className="mb-6 p-4 rounded-lg border-2" style={{backgroundColor: '#f0fdf4', borderColor: '#bbf7d0', color: '#16a34a'}}>
-              {success}
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4" style={{backgroundColor: '#ffffff', color: '#93a57b'}}>or</span>
             </div>
-          )}
+          </div>
 
           {/* Auth Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -203,7 +148,12 @@ export default function AuthPage() {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 bg-gray-50 text-gray-900 placeholder-gray-500"
+                    className="w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
+                    style={{
+                      borderColor: '#e5e7eb',
+                      '--tw-ring-color': '#bfcc94',
+                      backgroundColor: '#f9fafb'
+                    }}
                     placeholder="Enter your full name"
                     required={!isLogin}
                   />
@@ -224,7 +174,12 @@ export default function AuthPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 bg-gray-50 text-gray-900 placeholder-gray-500"
+                  className="w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
+                  style={{
+                    borderColor: '#e5e7eb',
+                    '--tw-ring-color': '#bfcc94',
+                    backgroundColor: '#f9fafb'
+                  }}
                   placeholder="Enter your email"
                   required
                 />
@@ -244,7 +199,12 @@ export default function AuthPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-12 pr-14 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 bg-gray-50 text-gray-900 placeholder-gray-500"
+                  className="w-full pl-12 pr-14 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
+                  style={{
+                    borderColor: '#e5e7eb',
+                    '--tw-ring-color': '#bfcc94',
+                    backgroundColor: '#f9fafb'
+                  }}
                   placeholder="Enter your password"
                   required
                 />
@@ -258,47 +218,6 @@ export default function AuthPage() {
                 </button>
               </div>
             </div>
-
-            {/* Password Requirements for signup */}
-            {!isLogin && (
-              <div className="mt-3">
-                <div className="text-sm font-medium mb-2" style={{color: '#2c423f'}}>
-                  Password Requirements:
-                </div>
-                <div className="space-y-1 text-xs">
-                  <div className={`flex items-center ${formData.password.length >= 8 ? 'text-green-600' : 'text-gray-500'}`}>
-                    <div className={`w-2 h-2 rounded-full mr-2 ${formData.password.length >= 8 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    At least 8 characters
-                  </div>
-                  <div className={`flex items-center ${/[A-Z]/.test(formData.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                    <div className={`w-2 h-2 rounded-full mr-2 ${/[A-Z]/.test(formData.password) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    One uppercase letter (A-Z)
-                  </div>
-                  <div className={`flex items-center ${/[a-z]/.test(formData.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                    <div className={`w-2 h-2 rounded-full mr-2 ${/[a-z]/.test(formData.password) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    One lowercase letter (a-z)
-                  </div>
-                  <div className={`flex items-center ${/\d/.test(formData.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                    <div className={`w-2 h-2 rounded-full mr-2 ${/\d/.test(formData.password) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    One number (0-9)
-                  </div>
-                  <div className={`flex items-center ${/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                    <div className={`w-2 h-2 rounded-full mr-2 ${/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    One special character (!@#$%^&*...)
-                  </div>
-                </div>
-                {formData.password && !passwordValidation.valid && (
-                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
-                    <strong>Password needs:</strong>
-                    <ul className="mt-1 list-disc list-inside">
-                      {passwordValidation.errors.map((error, index) => (
-                        <li key={index}>{error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Confirm Password field for signup */}
             {!isLogin && (
@@ -314,7 +233,12 @@ export default function AuthPage() {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all duration-200 bg-gray-50 text-gray-900 placeholder-gray-500"
+                    className="w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
+                    style={{
+                      borderColor: '#e5e7eb',
+                      '--tw-ring-color': '#bfcc94',
+                      backgroundColor: '#f9fafb'
+                    }}
                     placeholder="Confirm your password"
                     required={!isLogin}
                   />
@@ -325,11 +249,10 @@ export default function AuthPage() {
             {/* Submit Button */}
             <Button 
               type="submit" 
-              disabled={isSubmitting}
-              className="w-full py-4 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" 
+              className="w-full py-4 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105" 
               style={{backgroundColor: '#677d61', color: '#ffffff'}}
             >
-              {isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
+              {isLogin ? 'Sign In' : 'Create Account'}
             </Button>
           </form>
 
@@ -343,9 +266,6 @@ export default function AuthPage() {
               onClick={() => {
                 setIsLogin(!isLogin);
                 setFormData({ name: '', email: '', password: '', confirmPassword: '' });
-                setPasswordValidation({ valid: false, errors: [] });
-                setError('');
-                setSuccess('');
               }}
               className="text-lg font-medium hover:underline"
               style={{color: '#677d61'}}
