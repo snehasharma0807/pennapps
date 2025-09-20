@@ -66,10 +66,10 @@ export default function OAuthPage() {
               <Logo variant="intention-ai" />
             </div>
             <h2 className="text-3xl font-bold mb-2" style={{color: '#2c423f'}}>
-              Sign in with social account
+              Sign in with Google
             </h2>
             <p className="text-lg" style={{color: '#93a57b'}}>
-              Choose your preferred social login method
+              Use your Google account to sign in
             </p>
           </div>
 
@@ -80,7 +80,7 @@ export default function OAuthPage() {
               variant="outline"
               className="w-full py-4 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center"
               style={{borderColor: '#e5e7eb', color: '#2c423f'}}
-              onClick={() => window.location.href = '/api/auth/login?returnTo=/dashboard'}
+              onClick={() => window.location.href = '/api/auth/login?returnTo=/dashboard&connection=google-oauth2'}
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -91,18 +91,6 @@ export default function OAuthPage() {
               Continue with Google
             </Button>
             
-            <Button 
-              type="button"
-              variant="outline"
-              className="w-full py-4 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center"
-              style={{borderColor: '#e5e7eb', color: '#2c423f'}}
-              onClick={() => window.location.href = '/api/auth/login?returnTo=/dashboard'}
-            >
-              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                <path fill="#00BCF2" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
-              </svg>
-              Continue with Microsoft
-            </Button>
           </div>
 
           {/* Alternative Options */}

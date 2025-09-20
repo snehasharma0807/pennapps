@@ -170,7 +170,7 @@ export default function AuthPage() {
                 className="w-full py-3 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105"
                 style={{borderColor: '#e5e7eb', color: '#2c423f'}}
               >
-                Sign in with Google or Microsoft
+                Sign in with Google
               </Button>
             </Link>
           </div>
