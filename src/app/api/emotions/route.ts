@@ -1,27 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@auth0/nextjs-auth0';
 import dbConnect from '@/lib/db';
-import User from '@/models/User';
 import EmotionEvent from '@/models/EmotionEvent';
+import { verifyToken } from '@/lib/password';
+import User from '@/models/User';
 
 // POST /api/emotions - Record emotion event
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session?.user) {
+    await dbConnect();
+    
+    // Get JWT token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
+    const token = authHeader.substring(7);
+    let decoded;
+    try {
+      decoded = verifyToken(token);
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
 
-    // Find or create user
-    let user = await User.findOne({ auth0Id: session.user.sub });
+    const user = await User.findById(decoded.userId);
     if (!user) {
-      user = await User.create({
-        auth0Id: session.user.sub,
-        email: session.user.email,
-        name: session.user.name || session.user.email,
-      });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const { emotion, confidence } = await request.json();
@@ -55,14 +59,23 @@ export async function POST(request: NextRequest) {
 // GET /api/emotions - Get emotion analytics
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session?.user) {
+    await dbConnect();
+    
+    // Get JWT token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
+    const token = authHeader.substring(7);
+    let decoded;
+    try {
+      decoded = verifyToken(token);
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
 
-    const user = await User.findOne({ auth0Id: session.user.sub });
+    const user = await User.findById(decoded.userId);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }

@@ -1,10 +1,7 @@
 import mongoose from 'mongoose';
 
 const UserSchema = new mongoose.Schema({
-  // Auth0 fields (optional - for Auth0 users)
-  auth0Id: { type: String, sparse: true },
-  
-  // Custom auth fields (optional - for custom auth users)
+  // Authentication fields
   password: { type: String, select: false }, // Never include in queries by default
   
   // Common fields
@@ -24,7 +21,6 @@ const UserSchema = new mongoose.Schema({
 
 // Index for efficient queries
 UserSchema.index({ email: 1 }, { unique: true });
-UserSchema.index({ auth0Id: 1 }, { unique: true, sparse: true });
 
 // Validation removed for now to allow custom auth users
 // UserSchema.pre('save', function(next) {

@@ -212,28 +212,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Start webcam monitoring
 async function startWebcamMonitoring() {
   try {
+    console.log('🔄 Starting webcam monitoring...');
+    
     // Get the active tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) {
-      console.error('No active tab found');
+      console.error('❌ No active tab found');
       return;
     }
+
+    console.log('📊 Active tab:', { id: tab.id, url: tab.url });
 
     // Check if we're on a chrome:// URL
     if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
-      console.error('Cannot access webcam on chrome:// URLs');
+      console.error('❌ Cannot access webcam on chrome:// URLs');
+      showNotification('Error', 'Cannot access webcam on this page. Please navigate to a regular website.');
       return;
     }
 
+    // First, ensure content script is loaded
+    console.log('🔄 Ensuring content script is loaded...');
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js']
+      });
+      console.log('✅ Content script injected');
+    } catch (injectError) {
+      console.log('⚠️ Content script injection failed:', injectError.message);
+    }
+
+    // Wait a moment for content script to initialize
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     // Request webcam permission through content script
+    console.log('🔄 Requesting webcam permission...');
     await requestWebcamPermission(tab.id);
     
     // Start hourly summary timer
     startHourlySummary();
     
-    console.log('Webcam monitoring started');
+    console.log('✅ Webcam monitoring started');
+    showNotification('Webcam Started', 'Emotion detection is now active!');
   } catch (error) {
-    console.error('Failed to start webcam:', error);
+    console.error('❌ Failed to start webcam:', error);
     showNotification('Permission Required', 'Please allow webcam access to monitor emotions.');
   }
 }
@@ -241,10 +263,19 @@ async function startWebcamMonitoring() {
 // Request webcam permission through content script
 async function requestWebcamPermission(tabId) {
   try {
+    console.log('🔄 Requesting webcam permission for tab:', tabId);
+    
     const results = await chrome.scripting.executeScript({
       target: { tabId: tabId },
       function: async () => {
         try {
+          console.log('🔄 Requesting webcam access...');
+          
+          // Check if getUserMedia is available
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('getUserMedia not supported');
+          }
+          
           // Request webcam permission
           const stream = await navigator.mediaDevices.getUserMedia({
             video: { 
@@ -266,60 +297,38 @@ async function requestWebcamPermission(tabId) {
           
           // Start emotion detection immediately
           if (window.startEmotionDetection) {
+            console.log('🔄 Starting emotion detection...');
             window.startEmotionDetection(stream);
             console.log('✅ Emotion detection started');
           } else {
             console.error('❌ startEmotionDetection function not available in content script');
-            console.log('🔄 Trying to send message to content script...');
-            
-            // Send a message to the content script to initialize
-            // Note: We can't send MediaStream objects through messages, so we'll use the global reference
-            chrome.tabs.sendMessage(tabId, { action: 'initializeAndStart' }, (response) => {
-              if (chrome.runtime.lastError) {
-                console.error('❌ Failed to send message to content script:', chrome.runtime.lastError);
-                console.log('🔄 Content script may not be loaded yet, trying direct injection...');
-                
-                // Try to inject the content script directly
-                chrome.scripting.executeScript({
-                  target: { tabId: tabId },
-                  files: ['content.js']
-                }).then(() => {
-                  console.log('✅ Content script injected, trying again...');
-                  // Wait a moment and try again
-                  setTimeout(() => {
-                    chrome.tabs.sendMessage(tabId, { action: 'initializeAndStart', stream: stream }, (retryResponse) => {
-                      if (retryResponse && retryResponse.success) {
-                        console.log('✅ Content script initialized after injection');
-                      } else {
-                        console.error('❌ Still failed after injection');
-                      }
-                    });
-                  }, 1000);
-                }).catch((error) => {
-                  console.error('❌ Failed to inject content script:', error);
-                });
-              } else if (response && response.success) {
-                console.log('✅ Content script initialized and emotion detection started');
-              } else {
-                console.error('❌ Content script initialization failed:', response);
-              }
-            });
+            console.log('🔄 Available functions:', Object.keys(window).filter(key => key.includes('Emotion')));
           }
           
-          return stream;
+          return { success: true, stream: 'MediaStream object' };
         } catch (error) {
-          console.error('Failed to get webcam access:', error);
-          throw error;
+          console.error('❌ Failed to get webcam access:', error);
+          return { success: false, error: error.message };
         }
       }
     });
     
-    // Store the stream reference in background script
+    console.log('📊 Webcam permission result:', results);
+    
     if (results && results[0] && results[0].result) {
-      webcamStream = results[0].result;
+      const result = results[0].result;
+      if (result.success) {
+        console.log('✅ Webcam permission granted successfully');
+        return true;
+      } else {
+        console.error('❌ Webcam permission failed:', result.error);
+        throw new Error(result.error);
+      }
+    } else {
+      throw new Error('No result from webcam permission request');
     }
   } catch (error) {
-    console.error('Failed to request webcam permission:', error);
+    console.error('❌ Failed to request webcam permission:', error);
     throw error;
   }
 }
@@ -636,12 +645,20 @@ async function handleEmotionDetected(emotion, confidence = 0.8, timestamp = null
 // Send emotion data to API
 async function sendEmotionToAPI(emotion, confidence) {
   try {
+    // Get user token from storage
+    const result = await chrome.storage.sync.get(['userToken', 'userId']);
+    const token = result.userToken;
+    
+    if (!token) {
+      console.log('No user token found, skipping API call');
+      return;
+    }
+
     const response = await fetch('http://localhost:3000/api/emotions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Note: In a real app, you'd need to handle authentication
-        // For now, we'll skip this or use a different approach
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         emotion,
@@ -652,6 +669,8 @@ async function sendEmotionToAPI(emotion, confidence) {
     if (!response.ok) {
       throw new Error(`API request failed: ${response.status}`);
     }
+    
+    console.log('✅ Emotion data sent to API successfully');
   } catch (error) {
     console.error('API error:', error);
   }

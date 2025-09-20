@@ -491,6 +491,24 @@
 
     </div>
 
+    <!-- Authentication Card -->
+    <div class="card" id="auth-card">
+      <div class="emotions-header">
+        <span class="emotions-title">Authentication</span>
+        <span class="emotions-count" id="auth-status">Not connected</span>
+      </div>
+      <div id="auth-content">
+        <div class="no-data" id="auth-message">Please log in to sync your emotion data</div>
+        <div style="margin-top: 12px;">
+          <input type="text" id="auth-token" placeholder="Enter your JWT token" 
+                 style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; font-size: 12px;">
+          <button id="auth-login" class="btn btn-primary" style="width: 100%; padding: 8px; font-size: 12px;">
+            🔐 Connect Account
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Actions -->
     <div class="actions">
       <button id="open-dashboard" class="btn btn-primary">

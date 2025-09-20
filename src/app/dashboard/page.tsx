@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BarChart3, Brain, Clock, Calendar, TrendingUp, Settings, Moon, Sun, Sparkles, Loader2, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
@@ -76,6 +76,7 @@ export default function Dashboard() {
     stressed: timeRangeData.reduce((sum, range) => sum + range.emotions.stressed, 0)
   };
 
+<<<<<<< HEAD
   // Function to generate insights using Gemini API
   const generateInsights = async () => {
     setIsGeneratingInsights(true);
@@ -150,6 +151,145 @@ export default function Dashboard() {
     }
   };
 
+=======
+  // Fetch real emotion data from API
+  const fetchEmotionData = async () => {
+    if (!user || !token) return;
+    
+    try {
+      setEmotionLoading(true);
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      };
+
+      console.log('🔐 Using JWT authentication for emotion data fetch');
+      
+      const response = await fetch('/api/emotions', {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEmotionData(data);
+        setLastRefreshTime(new Date().toLocaleTimeString());
+        console.log('📊 Fetched emotion data:', data);
+        console.log('📊 Analytics data:', data.analytics);
+        console.log('📊 Events count:', data.events?.length || 0);
+        console.log('📊 Raw detection counts:', {
+          morning: data.analytics?.morning,
+          afternoon: data.analytics?.afternoon,
+          evening: data.analytics?.evening,
+          late_night: data.analytics?.late_night
+        });
+      } else {
+        console.error('Failed to fetch emotion data:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+      }
+    } catch (error) {
+      console.error('Error fetching emotion data:', error);
+    } finally {
+      setEmotionLoading(false);
+    }
+  };
+
+  // Process emotion data for display (only when real data is available)
+  const processEmotionData = () => {
+    if (!emotionData) {
+      console.log('🔄 No emotion data available, using sample data');
+      // Return original sample data if no real data
+      return {
+        timeRangeData: [
+          { name: 'Morning', period: 'Morning', hours: 7, emotions: { focused: 0.8, tired: 0.1, stressed: 0.1 } },
+          { name: 'Afternoon', period: 'Afternoon', hours: 5, emotions: { focused: 0.6, tired: 0.3, stressed: 0.1 } },
+          { name: 'Evening', period: 'Evening', hours: 6, emotions: { focused: 0.3, tired: 0.6, stressed: 0.1 } },
+          { name: 'Late Night', period: 'Late Night', hours: 6, emotions: { focused: 0.1, tired: 0.8, stressed: 0.1 } },
+        ],
+        emotionTotals: { focused: 8.4, tired: 8.2, stressed: 1.4 }
+      };
+    }
+
+    const { analytics, events } = emotionData;
+    
+    console.log('🔄 Processing emotion data:', { analytics, events });
+    console.log('🔄 Raw analytics before processing:', analytics);
+    
+    // Convert detection counts to hours (assuming 1 detection = 3 minutes = 0.05 hours)
+    const convertDetectionsToHours = (detections: number) => Math.round((detections * 0.05) * 100) / 100;
+    
+    // Calculate total hours for each time period
+    const timeRangeData = [
+      { 
+        name: 'Morning', 
+        period: 'Morning', 
+        hours: convertDetectionsToHours(analytics.morning.focused + analytics.morning.tired + analytics.morning.stressed),
+        emotions: {
+          focused: convertDetectionsToHours(analytics.morning.focused),
+          tired: convertDetectionsToHours(analytics.morning.tired),
+          stressed: convertDetectionsToHours(analytics.morning.stressed)
+        }
+      },
+      { 
+        name: 'Afternoon', 
+        period: 'Afternoon', 
+        hours: convertDetectionsToHours(analytics.afternoon.focused + analytics.afternoon.tired + analytics.afternoon.stressed),
+        emotions: {
+          focused: convertDetectionsToHours(analytics.afternoon.focused),
+          tired: convertDetectionsToHours(analytics.afternoon.tired),
+          stressed: convertDetectionsToHours(analytics.afternoon.stressed)
+        }
+      },
+      { 
+        name: 'Evening', 
+        period: 'Evening', 
+        hours: convertDetectionsToHours(analytics.evening.focused + analytics.evening.tired + analytics.evening.stressed),
+        emotions: {
+          focused: convertDetectionsToHours(analytics.evening.focused),
+          tired: convertDetectionsToHours(analytics.evening.tired),
+          stressed: convertDetectionsToHours(analytics.evening.stressed)
+        }
+      },
+      { 
+        name: 'Late Night', 
+        period: 'Late Night', 
+        hours: convertDetectionsToHours(analytics.late_night.focused + analytics.late_night.tired + analytics.late_night.stressed),
+        emotions: {
+          focused: convertDetectionsToHours(analytics.late_night.focused),
+          tired: convertDetectionsToHours(analytics.late_night.tired),
+          stressed: convertDetectionsToHours(analytics.late_night.stressed)
+        }
+      },
+    ];
+
+    // Calculate emotion totals in hours (rounded to 2 decimal places)
+    const emotionTotals = {
+      focused: Math.round((convertDetectionsToHours(analytics.morning.focused + analytics.afternoon.focused + analytics.evening.focused + analytics.late_night.focused)) * 100) / 100,
+      tired: Math.round((convertDetectionsToHours(analytics.morning.tired + analytics.afternoon.tired + analytics.evening.tired + analytics.late_night.tired)) * 100) / 100,
+      stressed: Math.round((convertDetectionsToHours(analytics.morning.stressed + analytics.afternoon.stressed + analytics.evening.stressed + analytics.late_night.stressed)) * 100) / 100,
+    };
+
+    console.log('🔄 Processed timeRangeData:', timeRangeData);
+    console.log('🔄 Processed emotionTotals:', emotionTotals);
+
+    return { timeRangeData, emotionTotals };
+  };
+
+  // Use real data if available, otherwise use sample data
+  const displayData = useMemo(() => {
+    if (emotionData) {
+      console.log('🔄 Recalculating displayData with new emotionData');
+      const processed = processEmotionData();
+      console.log('🔄 Final displayData:', processed);
+      return processed;
+    } else {
+      console.log('🔄 Using sample data');
+      return { timeRangeData, emotionTotals };
+    }
+  }, [emotionData]);
+
+>>>>>>> 4039f79e3b9d13ec942533dd040d7b1465853926
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/auth');
@@ -531,6 +671,75 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {/* Chrome Extension Section */}
+        {user && (
+          <div className="mb-8">
+            <div className="flex items-center mb-6">
+              <div className="p-3 rounded-full bg-blue-500">
+                <Settings className="h-6 w-6 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold ml-4 text-foreground">
+                Chrome Extension
+              </h2>
+            </div>
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold mb-2 text-foreground">
+                  Connect Your Chrome Extension
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Use this token to authenticate your Chrome extension and sync emotion data.
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-foreground">
+                    Your Authentication Token
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type={showToken ? 'text' : 'password'}
+                      value={token || ''}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm font-mono"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowToken(!showToken)}
+                    >
+                      {showToken ? 'Hide' : 'Show'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(token || '');
+                        // You could add a toast notification here
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                    How to use:
+                  </h4>
+                  <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
+                    <li>Install the WorkFlow AI Chrome extension</li>
+                    <li>Click the extension icon in your browser</li>
+                    <li>Paste this token in the authentication field</li>
+                    <li>Click "Connect Account" to start syncing data</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

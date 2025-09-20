@@ -5,6 +5,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const notificationsToggle = document.getElementById('notifications-toggle');
   const openDashboardBtn = document.getElementById('open-dashboard');
   
+  // Authentication elements
+  const authCard = document.getElementById('auth-card');
+  const authStatus = document.getElementById('auth-status');
+  const authMessage = document.getElementById('auth-message');
+  const authToken = document.getElementById('auth-token');
+  const authLogin = document.getElementById('auth-login');
+  
   // Current emotion display elements
   const currentEmotionCard = document.getElementById('current-emotion-card');
   const currentEmotionEmoji = document.getElementById('current-emotion-emoji');
@@ -259,4 +266,108 @@ document.addEventListener('DOMContentLoaded', async () => {
       element.title = text;
     }
   });
+
+  // Authentication functions
+  function updateAuthUI(settings) {
+    if (settings.userToken && settings.userEmail) {
+      authStatus.textContent = 'Connected';
+      authStatus.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      authMessage.textContent = `Connected as ${settings.userEmail}`;
+      authToken.style.display = 'none';
+      authLogin.innerHTML = '🔓 Disconnect';
+      authLogin.onclick = disconnectAccount;
+    } else {
+      authStatus.textContent = 'Not connected';
+      authStatus.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+      authMessage.textContent = 'Please log in to sync your emotion data';
+      authToken.style.display = 'block';
+      authLogin.innerHTML = '🔐 Connect Account';
+      authLogin.onclick = connectAccount;
+    }
+  }
+
+  async function connectAccount() {
+    const token = authToken.value.trim();
+    if (!token) {
+      authMessage.textContent = 'Please enter a valid JWT token';
+      authMessage.style.color = '#dc2626';
+      return;
+    }
+
+    authLogin.innerHTML = '⏳ Connecting...';
+    authLogin.disabled = true;
+
+    try {
+      const response = await fetch('http://localhost:3000/api/extension-auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        await chrome.storage.sync.set({
+          userToken: token,
+          userId: data.user.id,
+          userEmail: data.user.email
+        });
+        
+        authMessage.textContent = `Connected as ${data.user.email}`;
+        authMessage.style.color = '#059669';
+        authToken.value = '';
+        updateAuthUI({ userToken: token, userEmail: data.user.email });
+        
+        // Show success indicator
+        showSuccessIndicator('Account connected successfully!');
+      } else {
+        throw new Error('Authentication failed');
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      authMessage.textContent = 'Failed to connect. Please check your token.';
+      authMessage.style.color = '#dc2626';
+    } finally {
+      authLogin.innerHTML = '🔐 Connect Account';
+      authLogin.disabled = false;
+    }
+  }
+
+  async function disconnectAccount() {
+    await chrome.storage.sync.remove(['userToken', 'userId', 'userEmail']);
+    updateAuthUI({});
+    authMessage.textContent = 'Please log in to sync your emotion data';
+    authMessage.style.color = '#6b7280';
+    showSuccessIndicator('Account disconnected');
+  }
+
+  function showSuccessIndicator(message) {
+    const indicator = document.createElement('div');
+    indicator.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 10000;
+      animation: slideIn 0.3s ease-out;
+    `;
+    indicator.textContent = message;
+    
+    document.body.appendChild(indicator);
+    
+    setTimeout(() => {
+      if (indicator.parentNode) {
+        indicator.parentNode.removeChild(indicator);
+      }
+    }, 3000);
+  }
+
+  // Add event listener for auth login button
+  authLogin.addEventListener('click', connectAccount);
 });
