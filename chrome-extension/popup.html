@@ -395,6 +395,40 @@
     .emotion-tired { color: #d97706; }
     .emotion-stressed { color: #dc2626; }
     
+    /* Current Emotion Display */
+    .current-emotion-display {
+      text-align: center;
+      padding: 20px 0;
+    }
+    
+    .emotion-emoji-large {
+      font-size: 48px;
+      margin-bottom: 12px;
+      animation: pulse 2s infinite;
+    }
+    
+    .emotion-name-large {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: capitalize;
+    }
+    
+    .emotion-time-large {
+      font-size: 14px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    
+    .emotion-confidence {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
     .no-data {
       text-align: center;
       padding: 20px;
@@ -441,6 +475,19 @@
       </div>
     </div>
 
+    <!-- Current Emotion Card -->
+    <div class="card" id="current-emotion-card" style="display: none;">
+      <div class="emotions-header">
+        <span class="emotions-title">Current State</span>
+        <span class="emotion-confidence" id="emotion-confidence">0%</span>
+      </div>
+      <div class="current-emotion-display">
+        <div class="emotion-emoji-large" id="current-emotion-emoji">🤔</div>
+        <div class="emotion-name-large" id="current-emotion-name">Analyzing...</div>
+        <div class="emotion-time-large" id="current-emotion-time">Just now</div>
+      </div>
+    </div>
+
     <!-- Controls -->
     <div class="card">
       <!-- Webcam Toggle -->
@@ -449,7 +496,7 @@
           <div class="control-title">Webcam Monitoring</div>
           <div class="control-description">Detect emotions via webcam</div>
         </div>
-        <div class="toggle" id="webcam-toggle" onclick="toggleWebcam()"></div>
+        <div class="toggle" id="webcam-toggle"></div>
       </div>
 
       <!-- Notifications Toggle -->
@@ -458,7 +505,7 @@
           <div class="control-title">Smart Notifications</div>
           <div class="control-description">Get AI-powered suggestions</div>
         </div>
-        <div class="toggle active" id="notifications-toggle" onclick="toggleNotifications()"></div>
+        <div class="toggle active" id="notifications-toggle"></div>
       </div>
 
       <!-- Notification Interval -->

@@ -11,6 +11,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const lastDetection = document.getElementById('last-detection');
   const recentEmotions = document.getElementById('recent-emotions');
   const emotionsCount = document.getElementById('emotions-count');
+  
+  // Current emotion display elements
+  const currentEmotionCard = document.getElementById('current-emotion-card');
+  const currentEmotionEmoji = document.getElementById('current-emotion-emoji');
+  const currentEmotionName = document.getElementById('current-emotion-name');
+  const currentEmotionTime = document.getElementById('current-emotion-time');
+  const emotionConfidence = document.getElementById('emotion-confidence');
 
   // Load saved settings
   const settings = await chrome.storage.sync.get({
@@ -29,8 +36,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   notificationInterval.value = settings.notificationInterval;
 
+  // Get current detection status
+  await updateDetectionStatus();
   updateStatus();
-  updateRecentEmotions(settings.lastEmotions);
+  
+  // Force update recent emotions on popup open
+  console.log('🚀 Popup opened, forcing emotion update...');
+  await forceUpdateRecentEmotions();
 
   // Add loading states and enhanced interactions
   openDashboardBtn.addEventListener('click', async () => {
@@ -38,9 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     openDashboardBtn.disabled = true;
     
     try {
-      // Use the configuration system to get the correct URL
-      const dashboardUrl = window.WORKFLOW_CONFIG.getUrl(window.WORKFLOW_CONFIG.endpoints.dashboard);
-      await chrome.tabs.create({ url: dashboardUrl });
+      await chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
     } catch (error) {
       console.error('Failed to open dashboard:', error);
       openDashboardBtn.innerHTML = '❌ Failed to open';
@@ -72,9 +82,124 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Add test content script button
+  const testContentScriptBtn = document.createElement('button');
+  testContentScriptBtn.id = 'test-content-script';
+  testContentScriptBtn.className = 'btn btn-secondary';
+  testContentScriptBtn.innerHTML = '🧪 Test Content Script';
+  testContentScriptBtn.style.marginTop = '8px';
+  
+  testContentScriptBtn.addEventListener('click', async () => {
+    testContentScriptBtn.innerHTML = '⏳ Testing...';
+    testContentScriptBtn.disabled = true;
+    
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'testContentScript' });
+      if (response && response.success) {
+        console.log('📊 Content script test results:', response.results);
+        testContentScriptBtn.innerHTML = '✅ Working!';
+        setTimeout(() => {
+          testContentScriptBtn.innerHTML = '🧪 Test Content Script';
+          testContentScriptBtn.disabled = false;
+        }, 2000);
+      } else {
+        console.error('Content script test failed:', response);
+        testContentScriptBtn.innerHTML = '❌ Failed';
+        setTimeout(() => {
+          testContentScriptBtn.innerHTML = '🧪 Test Content Script';
+          testContentScriptBtn.disabled = false;
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Failed to test content script:', error);
+      testContentScriptBtn.innerHTML = '❌ Error';
+      setTimeout(() => {
+        testContentScriptBtn.innerHTML = '🧪 Test Content Script';
+        testContentScriptBtn.disabled = false;
+      }, 2000);
+    }
+  });
+  
+  // Add the test button to the actions section
+  const actionsSection = document.querySelector('.actions');
+  actionsSection.appendChild(testContentScriptBtn);
+
   notificationInterval.addEventListener('change', async (e) => {
     await chrome.storage.sync.set({ notificationInterval: parseInt(e.target.value) });
   });
+
+  // Force update recent emotions by requesting them from background
+  async function forceUpdateRecentEmotions() {
+    try {
+      console.log('🔄 Force updating recent emotions...');
+      const response = await chrome.runtime.sendMessage({ action: 'getStatus' });
+      if (response && response.totalDetections > 0) {
+        console.log('📊 Found detections, requesting recent emotions...');
+        // Request recent emotions from background
+        chrome.runtime.sendMessage({ action: 'getRecentEmotions' });
+      } else {
+        console.log('❌ No detections found, checking if webcam is enabled...');
+        const webcamEnabled = webcamToggle.classList.contains('active');
+        if (webcamEnabled) {
+          console.log('📹 Webcam enabled but no detections yet, showing loading state...');
+          recentEmotions.innerHTML = '<div class="no-data">🔄 Analyzing video feed...</div>';
+        } else {
+          console.log('❌ Webcam not enabled, showing no-data message');
+          updateRecentEmotions([]);
+        }
+      }
+    } catch (error) {
+      console.error('💥 Failed to force update recent emotions:', error);
+      updateRecentEmotions([]);
+    }
+  }
+
+  // Get current detection status from background
+  async function updateDetectionStatus() {
+    try {
+      console.log('🔄 Updating detection status...');
+      const response = await chrome.runtime.sendMessage({ action: 'getStatus' });
+      console.log('📊 Status response:', response);
+      
+      if (response) {
+        // Update last detection time
+        if (response.lastDetection) {
+          const time = new Date(response.lastDetection.timestamp).toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+          lastDetection.textContent = time;
+          console.log('✅ Updated last detection time:', time);
+          
+          // Update current emotion display
+          updateCurrentEmotion(response.lastDetection);
+        } else {
+          // Check if webcam is enabled but no detection yet
+          const webcamEnabled = webcamToggle.classList.contains('active');
+          if (webcamEnabled) {
+            lastDetection.textContent = 'Starting...';
+            console.log('⏳ Webcam enabled but no detection yet');
+          } else {
+            lastDetection.textContent = 'Never';
+            currentEmotionCard.style.display = 'none';
+            console.log('❌ No last detection found');
+          }
+        }
+        
+        // Update recent emotions if available
+        if (response.totalDetections > 0) {
+          console.log('📈 Total detections:', response.totalDetections);
+        }
+      } else {
+        console.log('❌ No response from background script');
+        lastDetection.textContent = 'Never';
+        currentEmotionCard.style.display = 'none';
+      }
+    } catch (error) {
+      console.error('💥 Failed to get detection status:', error);
+      lastDetection.textContent = 'Error';
+    }
+  }
 
   // Enhanced status indicator with animations
   function updateStatus() {
@@ -86,7 +211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="status-dot"></div>
         <span>Active</span>
       `;
-      webcamStatus.textContent = 'Active';
+      webcamStatus.textContent = 'Monitoring';
       webcamStatus.style.color = '#059669';
     } else {
       statusIndicator.className = 'status-indicator status-inactive';
@@ -100,7 +225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Enhanced toggle functions with haptic feedback simulation
-  window.toggleWebcam = async function() {
+  async function toggleWebcam() {
     const enabled = !webcamToggle.classList.contains('active');
     
     // Add visual feedback
@@ -120,9 +245,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     updateStatus();
-  };
+  }
 
-  window.toggleNotifications = async function() {
+  async function toggleNotifications() {
     const enabled = !notificationsToggle.classList.contains('active');
     
     // Add visual feedback
@@ -138,18 +263,61 @@ document.addEventListener('DOMContentLoaded', async () => {
       notificationsToggle.classList.remove('active');
       await chrome.storage.sync.set({ notificationsEnabled: false });
     }
-  };
+  }
 
-  // Enhanced recent emotions display with better formatting
+  // Add event listeners for the toggles
+  webcamToggle.addEventListener('click', toggleWebcam);
+  notificationsToggle.addEventListener('click', toggleNotifications);
+
+  // Update current emotion display
+  function updateCurrentEmotion(emotion) {
+    if (!emotion) {
+      currentEmotionCard.style.display = 'none';
+      return;
+    }
+
+    const emojiMap = {
+      focused: '🎯',
+      tired: '😴',
+      stressed: '😰',
+      happy: '😊',
+      sad: '😢',
+      angry: '😠',
+      surprised: '😲',
+      neutral: '😐'
+    };
+
+    const emoji = emojiMap[emotion.emotion] || '🤔';
+    const time = new Date(emotion.timestamp).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    const confidence = Math.round((emotion.confidence || 0.7) * 100);
+
+    currentEmotionEmoji.textContent = emoji;
+    currentEmotionName.textContent = emotion.emotion;
+    currentEmotionName.className = `emotion-name-large emotion-${emotion.emotion}`;
+    currentEmotionTime.textContent = time;
+    emotionConfidence.textContent = `${confidence}%`;
+
+    currentEmotionCard.style.display = 'block';
+  }
+
+  // Enhanced recent emotions display with better formatting (shows last 5)
   function updateRecentEmotions(emotions) {
+    console.log('🔄 Updating recent emotions with:', emotions);
     emotionsCount.textContent = emotions.length;
     
     if (emotions.length === 0) {
       recentEmotions.innerHTML = '<div class="no-data">No recent data available</div>';
+      console.log('❌ No emotions to display, showing no-data message');
       return;
     }
 
-    const emotionsHtml = emotions.slice(0, 5).map(emotion => {
+    // Show last 5 emotions (most recent first)
+    const lastFiveEmotions = emotions.slice(-5).reverse();
+
+    const emotionsHtml = lastFiveEmotions.map(emotion => {
       const time = new Date(emotion.timestamp).toLocaleTimeString([], { 
         hour: '2-digit', 
         minute: '2-digit' 
@@ -195,16 +363,103 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
+  // Auto-refresh status every 2 seconds when popup is open for more responsive updates
+  const statusRefreshInterval = setInterval(async () => {
+    await updateDetectionStatus();
+    updateStatus();
+  }, 2000);
+
+  // Clean up interval when popup closes
+  window.addEventListener('beforeunload', () => {
+    clearInterval(statusRefreshInterval);
+  });
+
   // Listen for updates from background script
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('📨 Popup received message:', message);
+    
     if (message.action === 'updateRecentEmotions') {
+      console.log('📊 Updating recent emotions from message:', message.emotions);
       updateRecentEmotions(message.emotions);
     }
     
     if (message.action === 'updateStatus') {
       updateStatus();
     }
+    
+    if (message.action === 'emotionDetected') {
+      console.log('🎭 Real-time emotion update received:', message);
+      
+      // Update current emotion display immediately
+      updateCurrentEmotion({
+        emotion: message.emotion,
+        confidence: message.confidence,
+        timestamp: message.timestamp
+      });
+      
+      // Update last detection time
+      const time = new Date(message.timestamp).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      lastDetection.textContent = time;
+      console.log('✅ Real-time update: Last detection set to', time);
+      
+      // Show a visual indicator that emotion was detected
+      showEmotionDetectionIndicator(message.emotion);
+    }
   });
+
+  // Show visual indicator when emotion is detected
+  function showEmotionDetectionIndicator(emotion) {
+    // Create a temporary indicator
+    const indicator = document.createElement('div');
+    indicator.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 10000;
+      animation: slideIn 0.3s ease-out;
+    `;
+    
+    const emojiMap = {
+      focused: '🎯',
+      tired: '😴',
+      stressed: '😰',
+      happy: '😊',
+      sad: '😢',
+      angry: '😠',
+      surprised: '😲',
+      neutral: '😐'
+    };
+    
+    indicator.textContent = `${emojiMap[emotion] || '🤔'} ${emotion.toUpperCase()}`;
+    
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(indicator);
+    
+    // Remove after 2 seconds
+    setTimeout(() => {
+      if (indicator.parentNode) {
+        indicator.parentNode.removeChild(indicator);
+      }
+    }, 2000);
+  }
 
   // Add keyboard shortcuts
   document.addEventListener('keydown', (e) => {
@@ -220,11 +475,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           break;
         case 'w':
           e.preventDefault();
-          toggleWebcam();
+          webcamToggle.click();
           break;
         case 'n':
           e.preventDefault();
-          toggleNotifications();
+          notificationsToggle.click();
           break;
       }
     }
