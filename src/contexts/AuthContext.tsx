@@ -74,18 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    
-    // Also clear any Auth0 session if it exists
-    // This ensures clean logout when switching between auth methods
-    if (typeof window !== 'undefined') {
-      // Clear Auth0-specific cookies
-      const auth0Cookies = ['appSession', 'auth0.is.authenticated'];
-      auth0Cookies.forEach(cookieName => {
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
-      });
-    }
-    
     router.push('/');
   };
 

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@auth0/nextjs-auth0';
+import { authenticateUser } from '@/lib/auth';
 import { getRealtimeSuggestion, getRecurringSuggestion, getAnalyticsSummary, getWeeklySuggestions } from '@/lib/gemini';
 
 // POST /api/suggestions - Get AI suggestions
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session?.user) {
+    const user = await authenticateUser(request);
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

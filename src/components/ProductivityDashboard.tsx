@@ -34,7 +34,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
   const generateInsights = (data: TimeRangeData[]): Insight[] => {
     const insights: Insight[] = [];
     
-    // Calculate totals and percentages
+    // Calculate totals and check if we have enough data
     const totals = data.reduce((acc, range) => {
       acc.focused += range.emotions.focused;
       acc.tired += range.emotions.tired;
@@ -42,82 +42,94 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
       return acc;
     }, { focused: 0, tired: 0, stressed: 0 });
     
-    const totalHours = totals.focused + totals.tired + totals.stressed;
-    const focusedPercentage = Math.round((totals.focused / totalHours) * 100);
-    const stressedPercentage = Math.round((totals.stressed / totalHours) * 100);
+    const totalDetections = totals.focused + totals.tired + totals.stressed;
     
-    // Find most and least focused periods
-    const focusedByPeriod = data.map(range => ({
-      name: range.name,
-      percentage: Math.round((range.emotions.focused / range.hours) * 100)
-    }));
-    
-    const mostFocused = focusedByPeriod.reduce((max, current) => 
-      current.percentage > max.percentage ? current : max
-    );
-    
-    const leastFocused = focusedByPeriod.reduce((min, current) => 
-      current.percentage < min.percentage ? current : min
-    );
-    
-    // Find stress patterns
-    const stressedByPeriod = data.map(range => ({
-      name: range.name,
-      percentage: Math.round((range.emotions.stressed / range.hours) * 100)
-    }));
-    
-    const highestStress = stressedByPeriod.reduce((max, current) => 
-      current.percentage > max.percentage ? current : max
-    );
-    
-    // Generate insights based on data
-    if (mostFocused.percentage > leastFocused.percentage + 20) {
-      const difference = mostFocused.percentage - leastFocused.percentage;
-      insights.push({
-        type: 'positive',
-        icon: <CheckCircle className="h-5 w-5" />,
-        text: `You are ${difference}% more focused in the ${mostFocused.name.toLowerCase()} compared to the ${leastFocused.name.toLowerCase()}.`
-      });
+    // Only generate insights if we have meaningful data (at least 10 total detections)
+    if (totalDetections < 10) {
+      return [{
+        type: 'tip',
+        icon: <Lightbulb className="h-5 w-5" />,
+        text: "Keep using the extension to collect more data for meaningful insights!"
+      }];
     }
     
-    if (highestStress.percentage > 30) {
+    // Calculate overall percentages
+    const focusedPercentage = Math.round((totals.focused / totalDetections) * 100);
+    const stressedPercentage = Math.round((totals.stressed / totalDetections) * 100);
+    const tiredPercentage = Math.round((totals.tired / totalDetections) * 100);
+    
+    // Find most and least focused periods (using actual percentages from data)
+    const focusedByPeriod = data.map(range => ({
+      name: range.name,
+      focused: range.emotions.focused,
+      total: range.emotions.focused + range.emotions.tired + range.emotions.stressed,
+      percentage: range.emotions.focused + range.emotions.tired + range.emotions.stressed > 0 
+        ? Math.round((range.emotions.focused / (range.emotions.focused + range.emotions.tired + range.emotions.stressed)) * 100)
+        : 0
+    }));
+    
+    // Only consider periods with actual data
+    const periodsWithData = focusedByPeriod.filter(p => p.total > 0);
+    
+    if (periodsWithData.length >= 2) {
+      const mostFocused = periodsWithData.reduce((max, current) => 
+        current.percentage > max.percentage ? current : max
+      );
+      
+      const leastFocused = periodsWithData.reduce((min, current) => 
+        current.percentage < min.percentage ? current : min
+      );
+      
+      // Only show focus comparison if there's a meaningful difference (at least 15%)
+      if (mostFocused.percentage - leastFocused.percentage >= 15) {
+        const difference = mostFocused.percentage - leastFocused.percentage;
+        insights.push({
+          type: 'positive',
+          icon: <CheckCircle className="h-5 w-5" />,
+          text: `You're ${difference}% more focused in the ${mostFocused.name.toLowerCase()} (${mostFocused.percentage}%) compared to ${leastFocused.name.toLowerCase()} (${leastFocused.percentage}%).`
+        });
+      }
+    }
+    
+    // Stress insights - only if stress is significantly high
+    if (stressedPercentage >= 35) {
       insights.push({
         type: 'warning',
         icon: <AlertTriangle className="h-5 w-5" />,
-        text: `Stress spikes in the ${highestStress.name.toLowerCase()}.`
+        text: `High stress levels detected (${stressedPercentage}%). Consider taking more breaks or adjusting your workload.`
       });
     }
     
-    if (leastFocused.percentage < 20) {
-      insights.push({
-        type: 'tip',
-        icon: <Lightbulb className="h-5 w-5" />,
-        text: `Avoid ${leastFocused.name.toLowerCase()} sessions: lowest productivity window.`
-      });
-    }
-    
-    if (focusedPercentage > 50) {
+    // Focus insights - only if focus is significantly high or low
+    if (focusedPercentage >= 60) {
       insights.push({
         type: 'positive',
         icon: <TrendingUp className="h-5 w-5" />,
-        text: `Great focus overall! You're focused ${focusedPercentage}% of the time.`
+        text: `Excellent focus! You're focused ${focusedPercentage}% of the time.`
+      });
+    } else if (focusedPercentage <= 25) {
+      insights.push({
+        type: 'tip',
+        icon: <Lightbulb className="h-5 w-5" />,
+        text: `Focus could be improved (${focusedPercentage}%). Try minimizing distractions during work sessions.`
       });
     }
     
-    if (stressedPercentage > 40) {
+    // Tiredness insights - only if tiredness is significantly high
+    if (tiredPercentage >= 40) {
       insights.push({
         type: 'warning',
         icon: <AlertTriangle className="h-5 w-5" />,
-        text: `High stress levels detected (${stressedPercentage}%). Consider taking breaks.`
+        text: `High fatigue detected (${tiredPercentage}%). Consider taking more frequent breaks or adjusting your schedule.`
       });
     }
     
-    // Default insights if no specific patterns
+    // Only show default message if no meaningful insights were generated
     if (insights.length === 0) {
       insights.push({
         type: 'tip',
         icon: <Lightbulb className="h-5 w-5" />,
-        text: "Keep tracking your patterns to discover productivity insights!"
+        text: "Your productivity patterns look balanced. Keep tracking to identify trends over time!"
       });
     }
     
@@ -199,13 +211,13 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                     key={`focused-${range.name}-${viewMode}`}
                     className="absolute left-0 top-0 h-full flex items-center justify-center text-white text-xs font-medium hover:opacity-90"
                     style={{
-                      width: `${(focused / totalHours) * 100}%`,
+                      width: `${totalHours > 0 ? (focused / totalHours) * 100 : 0}%`,
                       backgroundColor: '#677d61', // Our green
                       transition: 'width 1000ms ease-out, left 1000ms ease-out'
                     }}
-                    title={`Focused: ${Math.round(focused)}h`}
+                    title={`Focused: ${Math.round(focused)}%`}
                   >
-                    {focused > 0 && focused >= 1.5 && `${Math.round(focused)}h`}
+                    {focused > 0 && `${Math.round(focused)}%`}
                   </div>
                   
                   {/* Tired Segment */}
@@ -213,14 +225,14 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                     key={`tired-${range.name}-${viewMode}`}
                     className="absolute top-0 h-full flex items-center justify-center text-white text-xs font-medium hover:opacity-90"
                     style={{
-                      left: `${(focused / totalHours) * 100}%`,
-                      width: `${(tired / totalHours) * 100}%`,
+                      left: `${totalHours > 0 ? (focused / totalHours) * 100 : 0}%`,
+                      width: `${totalHours > 0 ? (tired / totalHours) * 100 : 0}%`,
                       backgroundColor: '#93a57b', // Our medium green
                       transition: 'width 1000ms ease-out, left 1000ms ease-out'
                     }}
-                    title={`Tired: ${Math.round(tired)}h`}
+                    title={`Tired: ${Math.round(tired)}%`}
                   >
-                    {tired > 0 && tired >= 1.5 && `${Math.round(tired)}h`}
+                    {tired > 0 && `${Math.round(tired)}%`}
                   </div>
                   
                   {/* Stressed Segment */}
@@ -228,14 +240,14 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                     key={`stressed-${range.name}-${viewMode}`}
                     className="absolute top-0 h-full flex items-center justify-center text-black text-xs font-medium hover:opacity-90"
                     style={{
-                      left: `${((focused + tired) / totalHours) * 100}%`,
-                      width: `${(stressed / totalHours) * 100}%`,
+                      left: `${totalHours > 0 ? ((focused + tired) / totalHours) * 100 : 0}%`,
+                      width: `${totalHours > 0 ? (stressed / totalHours) * 100 : 0}%`,
                       backgroundColor: '#fffd7a', // Our yellow
                       transition: 'width 1000ms ease-out, left 1000ms ease-out'
                     }}
-                    title={`Stressed: ${Math.round(stressed)}h`}
+                    title={`Stressed: ${Math.round(stressed)}%`}
                   >
-                    {stressed > 0 && stressed >= 1.5 && `${Math.round(stressed)}h`}
+                    {stressed > 0 && `${Math.round(stressed)}%`}
                   </div>
                 </div>
                 
@@ -245,15 +257,15 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                 }`} style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
                   <span className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded transition-all duration-300" style={{backgroundColor: '#677d61'}}></div>
-                    <span>Focused: {Math.round(focused)}h</span>
+                    <span>Focused: {Math.round(focused)}%</span>
                   </span>
                   <span className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded transition-all duration-300" style={{backgroundColor: '#93a57b'}}></div>
-                    <span>Tired: {Math.round(tired)}h</span>
+                    <span>Tired: {Math.round(tired)}%</span>
                   </span>
                   <span className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded transition-all duration-300" style={{backgroundColor: '#fffd7a'}}></div>
-                    <span>Stressed: {Math.round(stressed)}h</span>
+                    <span>Stressed: {Math.round(stressed)}%</span>
                   </span>
                 </div>
               </div>
@@ -279,51 +291,6 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
               </p>
             </div>
           ))}
-        </div>
-        
-        {/* Summary Stats */}
-        <div className="mt-8 p-8 rounded-lg" style={{backgroundColor: isDarkMode ? '#2d2d2d' : '#f8f9fa'}}>
-          <h4 className="text-xl font-semibold mb-8 text-center" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
-            Quick Summary
-          </h4>
-        <div className="grid grid-cols-3 gap-8 text-center">
-          <div className="transition-all duration-1000 ease-out hover:scale-110">
-            <div 
-              className="text-4xl font-bold mb-2 transition-all duration-1000 ease-out" 
-              style={{color: '#677d61'}}
-              key={`focused-summary-${viewMode}`}
-            >
-              {Math.round(timeRangeData.reduce((sum, range) => sum + range.emotions.focused, 0))}
-            </div>
-            <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
-              Focused Hours
-            </div>
-          </div>
-          <div className="transition-all duration-1000 ease-out hover:scale-110">
-            <div 
-              className="text-4xl font-bold mb-2 transition-all duration-1000 ease-out" 
-              style={{color: '#93a57b'}}
-              key={`tired-summary-${viewMode}`}
-            >
-              {Math.round(timeRangeData.reduce((sum, range) => sum + range.emotions.tired, 0))}
-            </div>
-            <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
-              Tired Hours
-            </div>
-          </div>
-          <div className="transition-all duration-1000 ease-out hover:scale-110">
-            <div 
-              className="text-4xl font-bold mb-2 transition-all duration-1000 ease-out" 
-              style={{color: '#fffd7a'}}
-              key={`stressed-summary-${viewMode}`}
-            >
-              {Math.round(timeRangeData.reduce((sum, range) => sum + range.emotions.stressed, 0))}
-            </div>
-            <div className="text-sm font-medium" style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
-              Stressed Hours
-            </div>
-          </div>
-        </div>
         </div>
       </div>
     </div>

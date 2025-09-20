@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings, Bell, User, Trash2, Save, AlertTriangle, Moon, Sun, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
-// import { useUser } from '@auth0/nextjs-auth0/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -15,10 +14,9 @@ interface UserSettings {
 }
 
 export default function SettingsPage() {
-  // const { user, isLoading } = useUser();
-  const user = { name: 'Demo User', email: 'demo@example.com' }; // Demo user for now
-  const isLoading = false;
   const router = useRouter();
+  const [user, setUser] = useState<{ name: string; email: string; id: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState<UserSettings>({
     notificationInterval: 15,
     notificationsEnabled: true,
@@ -29,6 +27,11 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Initialize dark mode from localStorage
   useEffect(() => {
@@ -43,6 +46,14 @@ export default function SettingsPage() {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
 
+  // Get JWT token from localStorage
+  const getToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('token');
+    }
+    return null;
+  };
+
   // Dark mode styles
   const darkModeStyles = {
     background: isDarkMode ? '#0f0f0f' : '#ffffff',
@@ -54,37 +65,63 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    const token = getToken();
+    if (!token) {
       router.push('/auth');
       return;
     }
     
-    // Fetch settings when user is available
-    if (user) {
-      fetchUserSettings();
-    }
-  }, [user, isLoading, router]);
+    // Fetch user data and settings
+    fetchUserData();
+  }, [router]);
 
-  const fetchUserSettings = async () => {
+  const fetchUserData = async () => {
+    const token = getToken();
+    if (!token) return;
+
+    setIsLoading(true);
     setIsLoadingSettings(true);
     try {
-      const response = await fetch('/api/user');
+      const response = await fetch('/api/user', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
       if (response.ok) {
         const userData = await response.json();
-        setSettings({
-          notificationInterval: userData.settings?.notificationInterval || 15,
-          notificationsEnabled: userData.settings?.notificationsEnabled ?? true,
-          webcamEnabled: userData.settings?.webcamEnabled ?? true
+        setUser({
+          name: userData.user.name || 'User',
+          email: userData.user.email,
+          id: userData.user._id
         });
+        
+        setSettings({
+          notificationInterval: userData.user.settings?.notificationInterval || 15,
+          notificationsEnabled: userData.user.settings?.notificationsEnabled ?? true,
+          webcamEnabled: userData.user.settings?.webcamEnabled ?? true
+        });
+      } else {
+        console.error('Failed to fetch user data');
+        router.push('/auth');
       }
     } catch (error) {
-      console.error('Error fetching user settings:', error);
+      console.error('Error fetching user data:', error);
+      router.push('/auth');
     } finally {
+      setIsLoading(false);
       setIsLoadingSettings(false);
     }
   };
 
   const saveSettings = async () => {
+    const token = getToken();
+    if (!token) {
+      alert('Please log in again');
+      router.push('/auth');
+      return;
+    }
+
     setIsSaving(true);
     try {
       // Add timeout to prevent hanging
@@ -96,6 +133,7 @@ export default function SettingsPage() {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           settings: {
@@ -127,6 +165,13 @@ export default function SettingsPage() {
   };
 
   const deleteAccount = async () => {
+    const token = getToken();
+    if (!token) {
+      alert('Please log in again');
+      router.push('/auth');
+      return;
+    }
+
     setIsDeleting(true);
     try {
       // Add timeout to prevent hanging
@@ -137,7 +182,8 @@ export default function SettingsPage() {
         method: 'DELETE',
         signal: controller.signal,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         }
       });
       
@@ -145,7 +191,9 @@ export default function SettingsPage() {
 
       if (response.ok) {
         alert('Account deleted successfully. You will be logged out.');
-        window.location.href = '/api/auth/logout';
+        // Clear token and redirect to auth page
+        localStorage.removeItem('token');
+        router.push('/auth');
       } else {
         const errorData = await response.json().catch(() => ({}));
         alert(`Failed to delete account: ${errorData.error || 'Unknown error'}`);
@@ -160,6 +208,105 @@ export default function SettingsPage() {
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    router.push('/auth');
+  };
+
+  const changePassword = async () => {
+    // Clear previous errors
+    setPasswordErrors([]);
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+      setPasswordErrors(['New passwords do not match']);
+      return;
+    }
+
+    // Validate password strength
+    if (newPassword.length < 8) {
+      setPasswordErrors(['Password must be at least 8 characters long']);
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      setPasswordErrors(['Password must contain at least one uppercase letter']);
+      return;
+    }
+
+    if (!/[a-z]/.test(newPassword)) {
+      setPasswordErrors(['Password must contain at least one lowercase letter']);
+      return;
+    }
+
+    if (!/\d/.test(newPassword)) {
+      setPasswordErrors(['Password must contain at least one number']);
+      return;
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      setPasswordErrors(['Password must contain at least one special character']);
+      return;
+    }
+
+    const token = getToken();
+    if (!token) {
+      alert('Please log in again');
+      router.push('/auth');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch('/api/user', {
+        method: 'PUT',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          settings: {
+            notificationInterval: settings.notificationInterval,
+            notificationsEnabled: settings.notificationsEnabled,
+            webcamEnabled: settings.webcamEnabled
+          }
+        }),
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        alert('Password changed successfully!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordErrors([]);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.details && Array.isArray(errorData.details)) {
+          setPasswordErrors(errorData.details);
+        } else {
+          setPasswordErrors([errorData.error || 'Failed to change password']);
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        setPasswordErrors(['Request timed out. Please try again.']);
+      } else {
+        console.error('Error changing password:', error);
+        setPasswordErrors(['Error changing password. Please try again.']);
+      }
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -314,10 +461,10 @@ export default function SettingsPage() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2" style={{color: darkModeStyles.text}}>Email</label>
+                <label className="block text-sm font-medium mb-2" style={{color: darkModeStyles.text}}>Name</label>
                 <input
-                  type="email"
-                  value={user.email}
+                  type="text"
+                  value={user?.name || ''}
                   className="w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:border-transparent"
                   style={{
                     borderColor: darkModeStyles.border,
@@ -329,9 +476,45 @@ export default function SettingsPage() {
               </div>
               
               <div>
+                <label className="block text-sm font-medium mb-2" style={{color: darkModeStyles.text}}>Email</label>
+                <input
+                  type="email"
+                  value={user?.email || ''}
+                  className="w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:border-transparent"
+                  style={{
+                    borderColor: darkModeStyles.border,
+                    backgroundColor: isDarkMode ? '#1a1a1a' : '#f9fafb',
+                    color: darkModeStyles.text,
+                  }}
+                  readOnly
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{color: darkModeStyles.text}}>Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                  className="w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:border-transparent"
+                  style={{
+                    borderColor: darkModeStyles.border,
+                    backgroundColor: isDarkMode ? '#1a1a1a' : '#f9fafb',
+                    color: darkModeStyles.text,
+                  }}
+                />
+                <p className="text-xs mt-1" style={{color: darkModeStyles.textSecondary}}>
+                  Required to verify your identity
+                </p>
+              </div>
+              
+              <div>
                 <label className="block text-sm font-medium mb-2" style={{color: darkModeStyles.text}}>New Password</label>
                 <input
                   type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Enter new password"
                   className="w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:border-transparent"
                   style={{
@@ -346,6 +529,8 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium mb-2" style={{color: darkModeStyles.text}}>Confirm New Password</label>
                 <input
                   type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm new password"
                   className="w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:border-transparent"
                   style={{
@@ -355,6 +540,40 @@ export default function SettingsPage() {
                   }}
                 />
               </div>
+
+              {/* Password Errors */}
+              {passwordErrors.length > 0 && (
+                <div className="p-4 rounded-lg border-2" style={{backgroundColor: '#fef2f2', borderColor: '#fca5a5'}}>
+                  <div className="flex items-start">
+                    <AlertTriangle className="h-5 w-5 mr-2 mt-0.5" style={{color: '#dc2626'}} />
+                    <div>
+                      <h4 className="text-sm font-medium mb-2" style={{color: '#dc2626'}}>Password Requirements</h4>
+                      <ul className="text-sm space-y-1" style={{color: '#dc2626'}}>
+                        {passwordErrors.map((error, index) => (
+                          <li key={index}>• {error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Change Password Button */}
+              {(currentPassword || newPassword || confirmPassword) && (
+                <Button
+                  onClick={changePassword}
+                  disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                  className="w-full py-3 text-lg font-semibold rounded-lg transition-all duration-200 hover:scale-105"
+                  style={{backgroundColor: '#677d61', color: '#ffffff'}}
+                >
+                  {isChangingPassword ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  ) : (
+                    <Save className="h-5 w-5 mr-2" />
+                  )}
+                  {isChangingPassword ? 'Changing Password...' : 'Change Password'}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -370,7 +589,7 @@ export default function SettingsPage() {
             
             <div className="space-y-4">
               <Button
-                onClick={() => window.location.href = '/api/auth/logout'}
+                onClick={handleLogout}
                 className="w-full py-3 text-lg font-semibold rounded-lg transition-all duration-200 hover:scale-105"
                 style={{backgroundColor: '#93a57b', color: '#ffffff'}}
               >

@@ -82,26 +82,35 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const week = searchParams.get('week') || 'current';
+    const since = searchParams.get('since'); // ISO timestamp for incremental updates
     
-    // Calculate date range
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
-    startOfWeek.setHours(0, 0, 0, 0);
+    let query: any = { userId: user._id };
     
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 7);
-    
-    if (week === 'previous') {
-      startOfWeek.setDate(startOfWeek.getDate() - 7);
-      endOfWeek.setDate(endOfWeek.getDate() - 7);
+    if (since) {
+      // Get only events since the specified timestamp
+      const sinceDate = new Date(since);
+      query.timestamp = { $gte: sinceDate };
+      console.log('📊 Fetching events since:', sinceDate.toISOString());
+    } else {
+      // Calculate date range for weekly view
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+      
+      if (week === 'previous') {
+        startOfWeek.setDate(startOfWeek.getDate() - 7);
+        endOfWeek.setDate(endOfWeek.getDate() - 7);
+      }
+      
+      query.timestamp = { $gte: startOfWeek, $lt: endOfWeek };
     }
 
-    // Get emotion events for the week
-    const events = await EmotionEvent.find({
-      userId: user._id,
-      timestamp: { $gte: startOfWeek, $lt: endOfWeek }
-    }).sort({ timestamp: 1 });
+    // Get emotion events
+    const events = await EmotionEvent.find(query).sort({ timestamp: 1 });
 
     // Group by time of day and emotion
     const analytics = {

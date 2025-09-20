@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BarChart3, Brain, Clock, Calendar, TrendingUp, Settings, Moon, Sun } from 'lucide-react';
 import Link from 'next/link';
-// import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
 import ProductivityDashboard from '@/components/ProductivityDashboard';
 import Logo from '@/components/Logo';
@@ -17,6 +16,12 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState<'daily' | 'weekly'>('daily');
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [emotionData, setEmotionData] = useState<any>(null);
+  const [emotionLoading, setEmotionLoading] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastDataFetch, setLastDataFetch] = useState<number>(0);
 
   // Initialize dark mode from localStorage
   useEffect(() => {
@@ -25,6 +30,130 @@ export default function Dashboard() {
       setIsDarkMode(JSON.parse(savedDarkMode));
     }
   }, []);
+
+  // Initialize token from localStorage
+  useEffect(() => {
+    const savedToken = localStorage.getItem('token');
+    console.log('🔐 Loading token from localStorage:', savedToken ? 'Token found' : 'No token');
+    if (savedToken) {
+      setToken(savedToken);
+      console.log('🔐 Token set in state');
+    }
+  }, []);
+
+  // Fetch emotion data from API
+  const fetchEmotionData = async () => {
+    console.log('🔄 fetchEmotionData called, token available:', !!token);
+    if (!token) {
+      console.log('❌ No token available for API call');
+      return;
+    }
+
+    console.log('🔄 Starting emotion data fetch...');
+    setIsRefreshing(true);
+    setEmotionLoading(true);
+    
+    try {
+      // Use incremental updates if we have existing data
+      const url = emotionData && emotionData.events && emotionData.events.length > 0
+        ? `/api/emotions?since=${emotionData.events[emotionData.events.length - 1].timestamp}`
+        : '/api/emotions';
+        
+      console.log('🔄 Fetching from URL:', url);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📊 Fetched emotion data:', data);
+        
+        // Handle incremental updates - merge new events with existing data
+        if (emotionData && data.events && data.events.length > 0) {
+          // Merge new events with existing ones
+          const existingEvents = emotionData.events || [];
+          const newEvents = data.events.filter((newEvent: any) => 
+            !existingEvents.some((existingEvent: any) => existingEvent._id === newEvent._id)
+          );
+          
+          if (newEvents.length > 0) {
+            console.log(`📊 Found ${newEvents.length} new emotion events!`);
+            const updatedData = {
+              ...data,
+              events: [...existingEvents, ...newEvents].sort((a, b) => 
+                new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+              )
+            };
+            
+            // Recalculate analytics with all events grouped by time of day
+            const allEvents = updatedData.events;
+            const analytics = {
+              morning: { focused: 0, tired: 0, stressed: 0 },
+              afternoon: { focused: 0, tired: 0, stressed: 0 },
+              evening: { focused: 0, tired: 0, stressed: 0 },
+              late_night: { focused: 0, tired: 0, stressed: 0 }
+            };
+
+            allEvents.forEach((event: any) => {
+              const timeOfDay = event.timeOfDay as keyof typeof analytics;
+              const emotion = event.emotion as 'focused' | 'tired' | 'stressed';
+              analytics[timeOfDay][emotion]++;
+            });
+            
+            updatedData.analytics = analytics;
+            setEmotionData(updatedData);
+            setLastDataFetch(Date.now());
+            console.log('✅ Emotion data updated with new events');
+          } else {
+            console.log('📊 No new events found');
+          }
+        } else if (!emotionData || (data.events && data.events.length > 0)) {
+          // Initial load or full refresh
+          console.log('📊 Setting initial/full emotion data...');
+          setEmotionData(data);
+          setLastDataFetch(Date.now());
+          console.log('✅ Emotion data set in state');
+        } else {
+          console.log('📊 No emotion data available');
+        }
+      } else {
+        console.error('❌ Failed to fetch emotion data:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching emotion data:', error);
+    } finally {
+      setIsRefreshing(false);
+      setEmotionLoading(false);
+    }
+  };
+
+  // Load emotion data on component mount
+  useEffect(() => {
+    if (token) {
+      fetchEmotionData();
+    }
+  }, [token]);
+
+  // Real-time data polling - fetch new emotion data every 5 seconds
+  useEffect(() => {
+    if (!token) return;
+
+    console.log('🔄 Starting real-time emotion data polling...');
+    
+    const pollInterval = setInterval(() => {
+      console.log('🔄 Polling for new emotion data...');
+      fetchEmotionData();
+    }, 5000); // Poll every 5 seconds
+
+    // Cleanup interval on unmount or token change
+    return () => {
+      console.log('🔄 Stopping real-time emotion data polling...');
+      clearInterval(pollInterval);
+    };
+  }, [token]);
 
   // Save dark mode preference to localStorage
   useEffect(() => {
@@ -66,51 +195,10 @@ export default function Dashboard() {
     stressed: timeRangeData.reduce((sum, range) => sum + range.emotions.stressed, 0)
   };
 
-  // Fetch real emotion data from API
-  const fetchEmotionData = async () => {
-    if (!user || !token) return;
-    
-    try {
-      setEmotionLoading(true);
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      };
 
-      console.log('🔐 Using JWT authentication for emotion data fetch');
-      
-      const response = await fetch('/api/emotions', {
-        method: 'GET',
-        headers,
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        setEmotionData(data);
-        setLastRefreshTime(new Date().toLocaleTimeString());
-        console.log('📊 Fetched emotion data:', data);
-        console.log('📊 Analytics data:', data.analytics);
-        console.log('📊 Events count:', data.events?.length || 0);
-        console.log('📊 Raw detection counts:', {
-          morning: data.analytics?.morning,
-          afternoon: data.analytics?.afternoon,
-          evening: data.analytics?.evening,
-          late_night: data.analytics?.late_night
-        });
-      } else {
-        console.error('Failed to fetch emotion data:', response.status);
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-      }
-    } catch (error) {
-      console.error('Error fetching emotion data:', error);
-    } finally {
-      setEmotionLoading(false);
-    }
-  };
-
-  // Process emotion data for display (only when real data is available)
-  const processEmotionData = () => {
+  // Use real data if available, otherwise use sample data
+  const displayData = useMemo(() => {
     if (!emotionData) {
       console.log('🔄 No emotion data available, using sample data');
       // Return original sample data if no real data
@@ -125,82 +213,80 @@ export default function Dashboard() {
       };
     }
 
+    console.log('🔄 Processing real emotion data:', emotionData);
     const { analytics, events } = emotionData;
     
-    console.log('🔄 Processing emotion data:', { analytics, events });
-    console.log('🔄 Raw analytics before processing:', analytics);
+    // Calculate total detections across all time periods
+    const totalDetections = analytics.morning.focused + analytics.morning.tired + analytics.morning.stressed +
+                           analytics.afternoon.focused + analytics.afternoon.tired + analytics.afternoon.stressed +
+                           analytics.evening.focused + analytics.evening.tired + analytics.evening.stressed +
+                           analytics.late_night.focused + analytics.late_night.tired + analytics.late_night.stressed;
     
-    // Convert detection counts to hours (assuming 1 detection = 3 minutes = 0.05 hours)
-    const convertDetectionsToHours = (detections: number) => Math.round((detections * 0.05) * 100) / 100;
+    // Convert to percentages (assuming 100% = 8 hours of total activity time for visualization)
+    const convertToPercentage = (detections: number) => {
+      if (totalDetections === 0) return 0;
+      return Math.round((detections / totalDetections) * 100);
+    };
     
-    // Calculate total hours for each time period
+    // Calculate bar heights as percentages for each time period
     const timeRangeData = [
       { 
         name: 'Morning', 
         period: 'Morning', 
-        hours: convertDetectionsToHours(analytics.morning.focused + analytics.morning.tired + analytics.morning.stressed),
+        hours: convertToPercentage(analytics.morning.focused + analytics.morning.tired + analytics.morning.stressed),
         emotions: {
-          focused: convertDetectionsToHours(analytics.morning.focused),
-          tired: convertDetectionsToHours(analytics.morning.tired),
-          stressed: convertDetectionsToHours(analytics.morning.stressed)
+          focused: convertToPercentage(analytics.morning.focused),
+          tired: convertToPercentage(analytics.morning.tired),
+          stressed: convertToPercentage(analytics.morning.stressed)
         }
       },
       { 
         name: 'Afternoon', 
         period: 'Afternoon', 
-        hours: convertDetectionsToHours(analytics.afternoon.focused + analytics.afternoon.tired + analytics.afternoon.stressed),
+        hours: convertToPercentage(analytics.afternoon.focused + analytics.afternoon.tired + analytics.afternoon.stressed),
         emotions: {
-          focused: convertDetectionsToHours(analytics.afternoon.focused),
-          tired: convertDetectionsToHours(analytics.afternoon.tired),
-          stressed: convertDetectionsToHours(analytics.afternoon.stressed)
+          focused: convertToPercentage(analytics.afternoon.focused),
+          tired: convertToPercentage(analytics.afternoon.tired),
+          stressed: convertToPercentage(analytics.afternoon.stressed)
         }
       },
       { 
         name: 'Evening', 
         period: 'Evening', 
-        hours: convertDetectionsToHours(analytics.evening.focused + analytics.evening.tired + analytics.evening.stressed),
+        hours: convertToPercentage(analytics.evening.focused + analytics.evening.tired + analytics.evening.stressed),
         emotions: {
-          focused: convertDetectionsToHours(analytics.evening.focused),
-          tired: convertDetectionsToHours(analytics.evening.tired),
-          stressed: convertDetectionsToHours(analytics.evening.stressed)
+          focused: convertToPercentage(analytics.evening.focused),
+          tired: convertToPercentage(analytics.evening.tired),
+          stressed: convertToPercentage(analytics.evening.stressed)
         }
       },
       { 
         name: 'Late Night', 
         period: 'Late Night', 
-        hours: convertDetectionsToHours(analytics.late_night.focused + analytics.late_night.tired + analytics.late_night.stressed),
+        hours: convertToPercentage(analytics.late_night.focused + analytics.late_night.tired + analytics.late_night.stressed),
         emotions: {
-          focused: convertDetectionsToHours(analytics.late_night.focused),
-          tired: convertDetectionsToHours(analytics.late_night.tired),
-          stressed: convertDetectionsToHours(analytics.late_night.stressed)
+          focused: convertToPercentage(analytics.late_night.focused),
+          tired: convertToPercentage(analytics.late_night.tired),
+          stressed: convertToPercentage(analytics.late_night.stressed)
         }
       },
     ];
 
-    // Calculate emotion totals in hours (rounded to 2 decimal places)
+    // Calculate emotion totals as percentages of total detections
+    const totalFocused = analytics.morning.focused + analytics.afternoon.focused + analytics.evening.focused + analytics.late_night.focused;
+    const totalTired = analytics.morning.tired + analytics.afternoon.tired + analytics.evening.tired + analytics.late_night.tired;
+    const totalStressed = analytics.morning.stressed + analytics.afternoon.stressed + analytics.evening.stressed + analytics.late_night.stressed;
+    
     const emotionTotals = {
-      focused: Math.round((convertDetectionsToHours(analytics.morning.focused + analytics.afternoon.focused + analytics.evening.focused + analytics.late_night.focused)) * 100) / 100,
-      tired: Math.round((convertDetectionsToHours(analytics.morning.tired + analytics.afternoon.tired + analytics.evening.tired + analytics.late_night.tired)) * 100) / 100,
-      stressed: Math.round((convertDetectionsToHours(analytics.morning.stressed + analytics.afternoon.stressed + analytics.evening.stressed + analytics.late_night.stressed)) * 100) / 100,
+      focused: totalDetections > 0 ? Math.round((totalFocused / totalDetections) * 100) : 0,
+      tired: totalDetections > 0 ? Math.round((totalTired / totalDetections) * 100) : 0,
+      stressed: totalDetections > 0 ? Math.round((totalStressed / totalDetections) * 100) : 0,
     };
 
     console.log('🔄 Processed timeRangeData:', timeRangeData);
     console.log('🔄 Processed emotionTotals:', emotionTotals);
 
     return { timeRangeData, emotionTotals };
-  };
-
-  // Use real data if available, otherwise use sample data
-  const displayData = useMemo(() => {
-    if (emotionData) {
-      console.log('🔄 Recalculating displayData with new emotionData');
-      const processed = processEmotionData();
-      console.log('🔄 Final displayData:', processed);
-      return processed;
-    } else {
-      console.log('🔄 Using sample data');
-      return { timeRangeData, emotionTotals };
-    }
   }, [emotionData]);
 
   useEffect(() => {
@@ -293,40 +379,70 @@ export default function Dashboard() {
             </p>
           </div>
           
-          {/* View Toggle */}
-          <div className="flex rounded-xl p-1 backdrop-blur-sm shadow-lg border transition-all duration-500" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}}>
+          {/* View Toggle and Refresh Button */}
+          <div className="flex items-center gap-4">
+            {/* Refresh Button */}
             <button
-              onClick={() => setViewMode('daily')}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
-                viewMode === 'daily' 
-                  ? 'text-white shadow-xl scale-105' 
-                  : 'hover:scale-102'
+              onClick={fetchEmotionData}
+              disabled={isRefreshing || !token}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
+                isRefreshing 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:scale-105 active:scale-95'
               }`}
               style={{
-                backgroundColor: viewMode === 'daily' ? '#677d61' : 'transparent',
-                color: viewMode === 'daily' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151'),
-                boxShadow: viewMode === 'daily' ? '0 10px 25px rgba(103, 125, 97, 0.3)' : 'none'
+                backgroundColor: '#677d61',
+                color: '#ffffff',
+                boxShadow: '0 4px 15px rgba(103, 125, 97, 0.3)'
               }}
+              title={!token ? 'Please login to refresh data' : 'Refresh emotion data from Chrome extension'}
             >
-              <Calendar className="h-4 w-4 mr-2 inline" style={{color: viewMode === 'daily' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151')}} />
-              Daily
+              <svg 
+                className={`h-4 w-4 mr-2 inline ${isRefreshing ? 'animate-spin' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
-            <button
-              onClick={() => setViewMode('weekly')}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
-                viewMode === 'weekly' 
-                  ? 'text-white shadow-xl scale-105' 
-                  : 'hover:scale-102'
-              }`}
-              style={{
-                backgroundColor: viewMode === 'weekly' ? '#677d61' : 'transparent',
-                color: viewMode === 'weekly' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151'),
-                boxShadow: viewMode === 'weekly' ? '0 10px 25px rgba(103, 125, 97, 0.3)' : 'none'
-              }}
-            >
-              <TrendingUp className="h-4 w-4 mr-2 inline" style={{color: viewMode === 'weekly' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151')}} />
-              Weekly
-            </button>
+
+            {/* View Toggle */}
+            <div className="flex rounded-xl p-1 backdrop-blur-sm shadow-lg border transition-all duration-500" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}}>
+              <button
+                onClick={() => setViewMode('daily')}
+                className={`px-6 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
+                  viewMode === 'daily' 
+                    ? 'text-white shadow-xl scale-105' 
+                    : 'hover:scale-102'
+                }`}
+                style={{
+                  backgroundColor: viewMode === 'daily' ? '#677d61' : 'transparent',
+                  color: viewMode === 'daily' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151'),
+                  boxShadow: viewMode === 'daily' ? '0 10px 25px rgba(103, 125, 97, 0.3)' : 'none'
+                }}
+              >
+                <Calendar className="h-4 w-4 mr-2 inline" style={{color: viewMode === 'daily' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151')}} />
+                Daily
+              </button>
+              <button
+                onClick={() => setViewMode('weekly')}
+                className={`px-6 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
+                  viewMode === 'weekly' 
+                    ? 'text-white shadow-xl scale-105' 
+                    : 'hover:scale-102'
+                }`}
+                style={{
+                  backgroundColor: viewMode === 'weekly' ? '#677d61' : 'transparent',
+                  color: viewMode === 'weekly' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151'),
+                  boxShadow: viewMode === 'weekly' ? '0 10px 25px rgba(103, 125, 97, 0.3)' : 'none'
+                }}
+              >
+                <TrendingUp className="h-4 w-4 mr-2 inline" style={{color: viewMode === 'weekly' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151')}} />
+                Weekly
+              </button>
+            </div>
           </div>
         </div>
 
@@ -335,68 +451,17 @@ export default function Dashboard() {
           <div className="rounded-2xl p-8 backdrop-blur-sm shadow-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
             <div>
               <ProductivityDashboard 
-                timeRangeData={timeRangeData} 
+                timeRangeData={displayData.timeRangeData} 
                 isDarkMode={isDarkMode}
                 viewMode={viewMode}
               />
               
-              <p className="text-sm mt-8 text-center opacity-70" style={{color: darkModeStyles.textSecondary}}>
-                Sample data shown - Install the Chrome extension for real-time monitoring
-              </p>
+              
+
             </div>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <div className="text-center group cursor-pointer transition-all duration-700 ease-out hover:scale-105 hover:-translate-y-3 backdrop-blur-sm rounded-2xl p-8 shadow-lg border hover:shadow-2xl" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.8)' : 'rgba(255, 255, 255, 0.8)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
-            <div 
-              className="text-5xl font-bold mb-3 transition-all duration-700 ease-out group-hover:text-6xl" 
-              style={{color: '#677d61'}}
-              key={`focused-${viewMode}`}
-            >
-              {Math.round(emotionTotals.focused)}
-            </div>
-            <div className="text-xl font-semibold transition-all duration-500 group-hover:text-2xl" style={{color: darkModeStyles.text}}>
-              Focused
-            </div>
-            <div className="text-sm transition-all duration-500 group-hover:opacity-80 opacity-70" style={{color: darkModeStyles.textSecondary}}>
-              {viewMode === 'daily' ? 'hours today' : 'hours this week'}
-            </div>
-          </div>
-          
-          <div className="text-center group cursor-pointer transition-all duration-700 ease-out hover:scale-105 hover:-translate-y-3 backdrop-blur-sm rounded-2xl p-8 shadow-lg border hover:shadow-2xl" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.8)' : 'rgba(255, 255, 255, 0.8)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
-            <div 
-              className="text-5xl font-bold mb-3 transition-all duration-700 ease-out group-hover:text-6xl" 
-              style={{color: '#93a57b'}}
-              key={`tired-${viewMode}`}
-            >
-              {Math.round(emotionTotals.tired)}
-            </div>
-            <div className="text-xl font-semibold transition-all duration-500 group-hover:text-2xl" style={{color: darkModeStyles.text}}>
-              Tired
-            </div>
-            <div className="text-sm transition-all duration-500 group-hover:opacity-80 opacity-70" style={{color: darkModeStyles.textSecondary}}>
-              {viewMode === 'daily' ? 'hours today' : 'hours this week'}
-            </div>
-          </div>
-          
-          <div className="text-center group cursor-pointer transition-all duration-700 ease-out hover:scale-105 hover:-translate-y-3 backdrop-blur-sm rounded-2xl p-8 shadow-lg border hover:shadow-2xl" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.8)' : 'rgba(255, 255, 255, 0.8)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
-            <div 
-              className="text-5xl font-bold mb-3 transition-all duration-700 ease-out group-hover:text-6xl" 
-              style={{color: '#fffd7a'}}
-              key={`stressed-${viewMode}`}
-            >
-              {Math.round(emotionTotals.stressed)}
-            </div>
-            <div className="text-xl font-semibold transition-all duration-500 group-hover:text-2xl" style={{color: darkModeStyles.text}}>
-              Stressed
-            </div>
-            <div className="text-sm transition-all duration-500 group-hover:opacity-80 opacity-70" style={{color: darkModeStyles.textSecondary}}>
-              {viewMode === 'daily' ? 'hours today' : 'hours this week'}
-            </div>
-          </div>
-        </div>
 
         {/* Analytics Section */}
         <div className="grid md:grid-cols-2 gap-8 mb-16">

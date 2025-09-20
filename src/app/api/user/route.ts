@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import EmotionEvent from '@/models/EmotionEvent';
-import { verifyToken } from '@/lib/password';
+import { verifyToken, hashPassword, verifyPassword, validatePassword } from '@/lib/password';
 
 // GET /api/user - Get user profile and settings
 export async function GET(request: NextRequest) {
@@ -62,12 +62,46 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const { settings } = await request.json();
+    const { settings, currentPassword, newPassword } = await request.json();
 
+    // Handle password change
+    if (newPassword) {
+      // Validate new password
+      const passwordValidation = validatePassword(newPassword);
+      if (!passwordValidation.valid) {
+        return NextResponse.json({ 
+          error: 'Password validation failed',
+          details: passwordValidation.errors
+        }, { status: 400 });
+      }
+
+      // Verify current password
+      if (!currentPassword) {
+        return NextResponse.json({ error: 'Current password is required' }, { status: 400 });
+      }
+
+      // Get user with password field included
+      const userWithPassword = await User.findById(decoded.userId).select('+password');
+      if (!userWithPassword || !userWithPassword.password) {
+        return NextResponse.json({ error: 'User not found or no password set' }, { status: 404 });
+      }
+
+      const isCurrentPasswordValid = await verifyPassword(currentPassword, userWithPassword.password);
+      if (!isCurrentPasswordValid) {
+        return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 });
+      }
+
+      // Hash new password and update
+      const hashedNewPassword = await hashPassword(newPassword);
+      user.password = hashedNewPassword;
+    }
+
+    // Handle settings update
     if (settings) {
       user.settings = { ...user.settings, ...settings };
-      await user.save();
     }
+
+    await user.save();
 
     return NextResponse.json({ user });
   } catch (error) {

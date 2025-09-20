@@ -28,7 +28,11 @@ export async function POST(request: NextRequest) {
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
       return NextResponse.json(
-        { error: 'Password does not meet requirements', details: passwordValidation.errors },
+        { 
+          error: 'Password does not meet requirements', 
+          details: passwordValidation.errors,
+          passwordErrors: passwordValidation.errors
+        },
         { status: 400 }
       );
     }

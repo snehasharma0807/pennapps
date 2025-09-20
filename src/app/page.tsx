@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, Brain, BarChart3, Bell } from 'lucide-react';
-// import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
 
