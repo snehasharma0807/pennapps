@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings, Bell, User, Trash2, Save, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { useUser } from '@auth0/nextjs-auth0/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -17,13 +16,8 @@ interface UserSettings {
 }
 
 export default function SettingsPage() {
-  const { user: auth0User, isLoading: auth0Loading } = useUser();
-  const { user: customUser, isLoading: customLoading } = useAuth();
+  const { user, token, isLoading, logout } = useAuth();
   const router = useRouter();
-  
-  // Check if user is logged in via either Auth0 or custom auth
-  const user = auth0User || customUser;
-  const isLoading = auth0Loading || customLoading;
   const [settings, setSettings] = useState<UserSettings>({
     notificationInterval: 15,
     notificationsEnabled: true,
@@ -36,12 +30,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      // Redirect to appropriate auth page based on what's available
-      if (auth0User) {
-        router.push('/api/auth/login');
-      } else {
-        router.push('/auth');
-      }
+      router.push('/auth');
       return;
     }
     
@@ -49,7 +38,7 @@ export default function SettingsPage() {
     if (user) {
       fetchUserSettings();
     }
-  }, [user, isLoading, router, auth0User]);
+  }, [user, isLoading, router]);
 
   const fetchUserSettings = async () => {
     setIsLoadingSettings(true);
@@ -58,12 +47,9 @@ export default function SettingsPage() {
         'Content-Type': 'application/json',
       };
       
-      // Add JWT token for custom auth users
-      if (customUser && !auth0User) {
-        const token = localStorage.getItem('token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+      // Add JWT token for authentication
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
       
       const response = await fetch('/api/user', { headers });
@@ -93,12 +79,9 @@ export default function SettingsPage() {
         'Content-Type': 'application/json',
       };
       
-      // Add JWT token for custom auth users
-      if (customUser && !auth0User) {
-        const token = localStorage.getItem('token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+      // Add JWT token for authentication
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
       
       const response = await fetch('/api/user', {
@@ -145,12 +128,9 @@ export default function SettingsPage() {
         'Content-Type': 'application/json',
       };
       
-      // Add JWT token for custom auth users
-      if (customUser && !auth0User) {
-        const token = localStorage.getItem('token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+      // Add JWT token for authentication
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
       
       const response = await fetch('/api/user', {
@@ -163,15 +143,9 @@ export default function SettingsPage() {
 
       if (response.ok) {
         alert('Account deleted successfully. You will be logged out.');
-        // Handle logout based on auth type
-        if (customUser && !auth0User) {
-          // Custom auth logout
-          localStorage.removeItem('token');
-          window.location.href = '/';
-        } else {
-          // Auth0 logout
-          window.location.href = '/api/auth/logout';
-        }
+        // Handle logout
+        logout();
+        window.location.href = '/';
       } else {
         const errorData = await response.json().catch(() => ({}));
         alert(`Failed to delete account: ${errorData.error || 'Unknown error'}`);

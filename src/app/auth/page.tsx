@@ -5,15 +5,13 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
-import { useUser } from '@auth0/nextjs-auth0/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { validatePassword } from '@/lib/password';
 
 export default function AuthPage() {
-  const { user: auth0User, isLoading: auth0Loading } = useUser();
-  const { user: customUser, login } = useAuth();
+  const { user, login } = useAuth();
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -29,12 +27,12 @@ export default function AuthPage() {
   const [passwordValidation, setPasswordValidation] = useState<{ valid: boolean; errors: string[] }>({ valid: false, errors: [] });
 
   useEffect(() => {
-    // If user is already logged in via either Auth0 or custom auth, redirect to dashboard
-    if (auth0User || customUser) {
+    // If user is already logged in, redirect to dashboard
+    if (user) {
       console.log('User already logged in, redirecting to dashboard');
       router.push('/dashboard');
     }
-  }, [auth0User, customUser, router]);
+  }, [user, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('Input changed:', e.target.name, e.target.value);
@@ -159,21 +157,6 @@ export default function AuthPage() {
             </p>
           </div>
 
-          {/* Alternative Options */}
-          <div className="text-center mb-8">
-            <p className="text-sm mb-4" style={{color: '#93a57b'}}>
-              Prefer social login?
-            </p>
-            <Link href="/oauth">
-              <Button 
-                variant="outline"
-                className="w-full py-3 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105"
-                style={{borderColor: '#e5e7eb', color: '#2c423f'}}
-              >
-                Sign in with Google
-              </Button>
-            </Link>
-          </div>
 
           {/* Error/Success Messages */}
           {error && (

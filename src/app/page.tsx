@@ -3,18 +3,12 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, Brain, BarChart3, Bell } from 'lucide-react';
-import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LandingPage() {
-  const { user: auth0User, error, isLoading: auth0Loading } = useUser();
-  const { user: customUser, isLoading: customLoading } = useAuth();
-  
-  // Check if user is logged in via either Auth0 or custom auth
-  const user = auth0User || customUser;
-  const isLoading = auth0Loading || customLoading;
+  const { user, isLoading } = useAuth();
 
   return (
     <div className="min-h-screen flex">
@@ -67,7 +61,7 @@ export default function LandingPage() {
                 <Link href="/auth">
                   <Button variant="ghost" className="login-button" style={{color: '#2c423f'}}>Log in</Button>
                 </Link>
-                <Link href="/oauth">
+                <Link href="/auth">
                   <Button style={{backgroundColor: '#677d61', color: '#ffffff'}}>Get Started</Button>
                 </Link>
               </>
