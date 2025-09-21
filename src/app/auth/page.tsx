@@ -22,6 +22,9 @@ export default function AuthPage() {
     password: '',
     confirmPassword: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -29,17 +32,105 @@ export default function AuthPage() {
     }
   }, [user, router]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  const validatePasswordStrength = (password: string) => {
+    const errors: string[] = [];
+    
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    
+    if (!/\d/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+    
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      errors.push('Password must contain at least one special character');
+    }
+    
+    return errors;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFormData = {
+      ...formData,
+      [e.target.name]: e.target.value
+    };
+    setFormData(newFormData);
+
+    // Real-time password validation
+    if (e.target.name === 'password') {
+      const errors = validatePasswordStrength(e.target.value);
+      setPasswordErrors(errors);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log('Form submitted:', formData);
+    setError('');
+    setIsSubmitting(true);
+    
+    // Validate password strength for registration
+    if (!isLogin) {
+      const passwordValidationErrors = validatePasswordStrength(formData.password);
+      if (passwordValidationErrors.length > 0) {
+        setError(`Password requirements not met: ${passwordValidationErrors.join(', ')}`);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    try {
+      const endpoint = isLogin ? '/api/auth/custom-login' : '/api/auth/custom-register';
+      const payload = isLogin 
+        ? { email: formData.email, password: formData.password }
+        : { email: formData.email, password: formData.password, name: formData.name };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store token in localStorage
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Redirect to dashboard
+        router.push('/dashboard');
+      } else {
+        // Handle password validation errors specifically
+        if (data.passwordErrors && data.passwordErrors.length > 0) {
+          setPasswordErrors(data.passwordErrors);
+          setError(`Password requirements not met: ${data.passwordErrors.join(', ')}`);
+        } else {
+          setError(data.error || 'An error occurred');
+        }
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -92,45 +183,13 @@ export default function AuthPage() {
             </p>
           </div>
 
-          {/* OAuth Buttons */}
-          <div className="space-y-4 mb-8">
-            <Button 
-              type="button"
-              variant="outline"
-              className="w-full py-4 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center"
-              style={{borderColor: '#e5e7eb', color: '#2c423f'}}
-            >
-              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Continue with Google
-            </Button>
-            
-            <Button 
-              type="button"
-              variant="outline"
-              className="w-full py-4 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center"
-              style={{borderColor: '#e5e7eb', color: '#2c423f'}}
-            >
-              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                <path fill="#00BCF2" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
-              </svg>
-              Continue with Microsoft
-            </Button>
-          </div>
 
-          {/* Divider */}
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t" style={{borderColor: '#e5e7eb'}}></div>
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 p-4 rounded-xl border-2" style={{borderColor: '#ef4444', backgroundColor: '#fef2f2'}}>
+              <p className="text-sm font-medium" style={{color: '#dc2626'}}>{error}</p>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4" style={{backgroundColor: '#ffffff', color: '#93a57b'}}>or</span>
-            </div>
-          </div>
+          )}
 
           {/* Auth Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -151,7 +210,6 @@ export default function AuthPage() {
                     className="w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
                     style={{
                       borderColor: '#e5e7eb',
-                      '--tw-ring-color': '#bfcc94',
                       backgroundColor: '#f9fafb'
                     }}
                     placeholder="Enter your full name"
@@ -174,10 +232,9 @@ export default function AuthPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
+                  className="w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:ring-2 focus:ring-green-300 focus:border-transparent transition-all duration-200"
                   style={{
                     borderColor: '#e5e7eb',
-                    '--tw-ring-color': '#bfcc94',
                     backgroundColor: '#f9fafb'
                   }}
                   placeholder="Enter your email"
@@ -199,10 +256,9 @@ export default function AuthPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-12 pr-14 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
+                  className="w-full pl-12 pr-14 py-4 border-2 rounded-xl focus:ring-2 focus:ring-green-300 focus:border-transparent transition-all duration-200"
                   style={{
                     borderColor: '#e5e7eb',
-                    '--tw-ring-color': '#bfcc94',
                     backgroundColor: '#f9fafb'
                   }}
                   placeholder="Enter your password"
@@ -218,6 +274,62 @@ export default function AuthPage() {
                 </button>
               </div>
             </div>
+
+            {/* Password Requirements Display (only for signup) */}
+            {!isLogin && (
+              <div className="mt-2">
+                <p className="text-xs font-medium mb-2" style={{color: '#2c423f'}}>
+                  Password Requirements:
+                </p>
+                <div className="space-y-1">
+                  {[
+                    'At least 8 characters long',
+                    'One uppercase letter (A-Z)',
+                    'One lowercase letter (a-z)', 
+                    'One number (0-9)',
+                    'One special character (!@#$%^&*)'
+                  ].map((requirement, index) => {
+                    const isMet = formData.password && (
+                      (index === 0 && formData.password.length >= 8) ||
+                      (index === 1 && /[A-Z]/.test(formData.password)) ||
+                      (index === 2 && /[a-z]/.test(formData.password)) ||
+                      (index === 3 && /\d/.test(formData.password)) ||
+                      (index === 4 && /[!@#$%^&*(),.?":{}|<>]/.test(formData.password))
+                    );
+                    
+                    return (
+                      <div key={index} className="flex items-center space-x-2">
+                        <div 
+                          className={`w-2 h-2 rounded-full ${isMet ? 'bg-green-500' : 'bg-gray-300'}`}
+                        ></div>
+                        <span 
+                          className={`text-xs ${isMet ? 'text-green-600' : 'text-gray-500'}`}
+                        >
+                          {requirement}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Real-time Password Validation Errors */}
+            {!isLogin && passwordErrors.length > 0 && formData.password && (
+              <div className="mt-2 p-3 rounded-lg border" style={{borderColor: '#fbbf24', backgroundColor: '#fef3c7'}}>
+                <p className="text-xs font-medium mb-2" style={{color: '#92400e'}}>
+                  Password needs improvement:
+                </p>
+                <ul className="space-y-1">
+                  {passwordErrors.map((error, index) => (
+                    <li key={index} className="text-xs flex items-center space-x-2" style={{color: '#92400e'}}>
+                      <span>•</span>
+                      <span>{error}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Confirm Password field for signup */}
             {!isLogin && (
@@ -236,7 +348,6 @@ export default function AuthPage() {
                     className="w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200"
                     style={{
                       borderColor: '#e5e7eb',
-                      '--tw-ring-color': '#bfcc94',
                       backgroundColor: '#f9fafb'
                     }}
                     placeholder="Confirm your password"
@@ -249,10 +360,11 @@ export default function AuthPage() {
             {/* Submit Button */}
             <Button 
               type="submit" 
-              className="w-full py-4 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105" 
+              disabled={isSubmitting}
+              className="w-full py-4 text-lg font-semibold rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" 
               style={{backgroundColor: '#677d61', color: '#ffffff'}}
             >
-              {isLogin ? 'Sign In' : 'Create Account'}
+              {isSubmitting ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
             </Button>
           </form>
 
@@ -266,6 +378,8 @@ export default function AuthPage() {
               onClick={() => {
                 setIsLogin(!isLogin);
                 setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+                setError('');
+                setPasswordErrors([]);
               }}
               className="text-lg font-medium hover:underline"
               style={{color: '#677d61'}}

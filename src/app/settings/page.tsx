@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings, Bell, User, Trash2, Save, AlertTriangle, Moon, Sun, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
@@ -8,10 +8,16 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-interface UserSettings {
-  notificationInterval: number;
-  notificationsEnabled: boolean;
-  webcamEnabled: boolean;
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  settings?: {
+    notifications?: {
+      push?: boolean;
+      frequency?: string; // in minutes: '15', '30', '45', '60'
+    };
+  };
 }
 
 export default function SettingsPage() {
@@ -53,66 +59,86 @@ export default function SettingsPage() {
     navBackground: isDarkMode ? '#1a1a1a' : '#ffffff'
   };
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/auth');
-      return;
+  // Get JWT token from localStorage
+  const getToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('token');
     }
-    
-    // Fetch settings when user is available
-    if (user) {
-      fetchUserSettings();
-    }
-  }, [user, isLoading, router]);
+    return null;
+  };
 
-  const fetchUserSettings = async () => {
-    setIsLoadingSettings(true);
+  // Get safe notification settings with defaults
+  const getNotificationSettings = () => {
+    return {
+      push: user?.settings?.notifications?.push ?? false,
+      frequency: user?.settings?.notifications?.frequency ?? '30'
+    };
+  };
+
+  // Fetch user data and settings
+  const fetchUserData = async () => {
     try {
-      const response = await fetch('/api/user');
+      const token = getToken();
+      if (!token) {
+        window.location.href = '/auth';
+        return;
+      }
+
+      const response = await fetch('/api/user', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
       if (response.ok) {
         const userData = await response.json();
-        setSettings({
-          notificationInterval: userData.settings?.notificationInterval || 15,
-          notificationsEnabled: userData.settings?.notificationsEnabled ?? true,
-          webcamEnabled: userData.settings?.webcamEnabled ?? true
-        });
+        setUser(userData);
+        setEditableName(userData.name || '');
+        setEditableEmail(userData.email || '');
+      } else if (response.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/auth';
       }
     } catch (error) {
-      console.error('Error fetching user settings:', error);
+      console.error('Failed to fetch user data:', error);
     } finally {
-      setIsLoadingSettings(false);
+      setIsLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  // Save settings
   const saveSettings = async () => {
+    if (!user) return;
+    
     setIsSaving(true);
+    setSaveMessage('');
+    
     try {
-      // Add timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout for saving
-      
+      const token = getToken();
       const response = await fetch('/api/user', {
         method: 'PUT',
-        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          name: editableName,
+          email: editableEmail,
           settings: {
-            notificationInterval: settings.notificationInterval,
-            notificationsEnabled: settings.notificationsEnabled,
-            webcamEnabled: settings.webcamEnabled
-          }
+            notifications: getNotificationSettings()
+          },
         }),
       });
-      
-      clearTimeout(timeoutId);
 
       if (response.ok) {
-        alert('Settings saved successfully!');
+        setSaveMessage('Settings saved successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        alert(`Failed to save settings: ${errorData.error || 'Unknown error'}`);
+        setSaveMessage('Failed to save settings');
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -126,29 +152,48 @@ export default function SettingsPage() {
     }
   };
 
-  const deleteAccount = async () => {
-    setIsDeleting(true);
+  // Change password
+  const changePassword = async () => {
+    setPasswordErrors([]);
+    
+    // Validation
+    const errors: string[] = [];
+    if (!currentPassword) errors.push('Current password is required');
+    if (!newPassword) errors.push('New password is required');
+    if (newPassword.length < 8) errors.push('New password must be at least 8 characters');
+    if (newPassword !== confirmPassword) errors.push('Passwords do not match');
+    
+    if (errors.length > 0) {
+      setPasswordErrors(errors);
+      return;
+    }
+
+    setIsChangingPassword(true);
+    
     try {
-      // Add timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for deletion
-      
+      const token = getToken();
       const response = await fetch('/api/user', {
-        method: 'DELETE',
-        signal: controller.signal,
+        method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
       });
-      
-      clearTimeout(timeoutId);
 
       if (response.ok) {
-        alert('Account deleted successfully. You will be logged out.');
-        window.location.href = '/api/auth/logout';
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordErrors([]);
+        setSaveMessage('Password changed successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        alert(`Failed to delete account: ${errorData.error || 'Unknown error'}`);
+        const errorData = await response.json();
+        setPasswordErrors([errorData.error || 'Failed to change password']);
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -158,24 +203,66 @@ export default function SettingsPage() {
         alert('Error deleting account. Please try again.');
       }
     } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
+      setIsChangingPassword(false);
     }
+  };
+
+  // Delete account
+  const deleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const token = getToken();
+      const response = await fetch('/api/user', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        localStorage.removeItem('token');
+        window.location.href = '/auth';
+      } else {
+        alert('Failed to delete account');
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Failed to delete account');
+    }
+  };
+
+  // Logout
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/auth';
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading settings...</p>
         </div>
       </div>
     );
   }
 
   if (!user) {
-    return null; // Will redirect to auth page
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600">Failed to load user data</p>
+          <Button onClick={() => window.location.href = '/auth'} className="mt-4">
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -204,6 +291,7 @@ export default function SettingsPage() {
                 </Button>
               </Link>
             </div>
+            <h1 className="text-3xl font-bold">Settings</h1>
           </div>
         </div>
       </header>
@@ -305,6 +393,13 @@ export default function SettingsPage() {
           {/* Divider */}
           <div className="border-t" style={{borderColor: darkModeStyles.border}}></div>
 
+        {saveMessage && (
+          <div className={`mb-6 p-4 rounded-lg ${saveMessage.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            {saveMessage}
+          </div>
+        )}
+        
+        <div className="space-y-6">
           {/* Account Information */}
           <div className="space-y-6">
             <div className="flex items-center space-x-3">
