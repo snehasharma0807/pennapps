@@ -58,7 +58,7 @@ function createEmotionDetector() {
       this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
       
       // Simple emotion detection
-      const emotions = ['focused', 'confused', 'happy', 'stressed', 'tired'];
+      const emotions = ['focused', 'stressed', 'tired'];
       const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
       const confidence = 0.6 + Math.random() * 0.3;
       
@@ -119,27 +119,7 @@ function startEmotionDetection(stream) {
         return;
       }
       
-      // Create video element to display the webcam feed
-      let video = document.getElementById('workflow-ai-video');
-      if (!video) {
-        video = document.createElement('video');
-        video.id = 'workflow-ai-video';
-        video.style.position = 'fixed';
-        video.style.top = '10px';
-        video.style.right = '10px';
-        video.style.width = '200px';
-        video.style.height = '150px';
-        video.style.border = '2px solid #667eea';
-        video.style.borderRadius = '10px';
-        video.style.zIndex = '10000';
-        video.style.opacity = '0.8';
-        video.autoplay = true;
-        video.muted = true;
-        video.playsInline = true;
-        document.body.appendChild(video);
-      }
-      
-      video.srcObject = stream;
+      // Video element is handled internally by the emotion detector
       
       // Start emotion detection
       emotionDetector.startDetection(stream);

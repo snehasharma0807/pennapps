@@ -1,15 +1,23 @@
-import fetch from "node-fetch";
+// Using built-in fetch for Next.js API routes
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
-if (!GEMINI_API_KEY) {
-  throw new Error("❌ Gemini API key not set. Please set GEMINI_API_KEY in .env.local");
+function getGeminiApiKey(): string {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn("⚠️ Gemini API key not set. Please set GEMINI_API_KEY in .env.local");
+    return "";
+  }
+  return apiKey;
 }
 
 export async function getGeminiSuggestion(prompt: string): Promise<string> {
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+      throw new Error("❌ Gemini API key not set. Please set GEMINI_API_KEY in .env.local");
+    }
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json" 

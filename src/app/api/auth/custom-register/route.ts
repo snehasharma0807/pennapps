@@ -28,7 +28,11 @@ export async function POST(request: NextRequest) {
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
       return NextResponse.json(
-        { error: 'Password does not meet requirements', details: passwordValidation.errors },
+        { 
+          error: 'Password does not meet requirements', 
+          details: passwordValidation.errors,
+          passwordErrors: passwordValidation.errors
+        },
         { status: 400 }
       );
     }
@@ -47,13 +51,12 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create user with a unique auth0Id for custom auth users
+    // Create user
     const user = await User.create({
       email,
       password: hashedPassword,
       name,
       emailVerified: false, // You might want to implement email verification
-      auth0Id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Unique identifier for custom auth
     });
 
     // Generate JWT token

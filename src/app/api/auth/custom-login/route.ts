@@ -26,13 +26,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user has a password (not Auth0 user)
-    if (!user.password) {
-      return NextResponse.json(
-        { error: 'This account uses social login. Please use the social login option.' },
-        { status: 401 }
-      );
-    }
 
     // Verify password
     const isPasswordValid = await verifyPassword(password, user.password);
