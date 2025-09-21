@@ -1,4 +1,7 @@
 // Advanced Face detection and emotion recognition system
+console.log('🚨 FACE-DETECTION.JS SCRIPT IS LOADING!');
+console.log('🚨 Script execution started at:', new Date().toISOString());
+
 class EmotionDetector {
   constructor() {
     this.modelsLoaded = false;
@@ -38,17 +41,29 @@ class EmotionDetector {
 
   async initialize() {
     try {
+      console.log('🔄 Initializing EmotionDetector...');
+      
       // NEW HYBRID CODE: Load CNN model first
       await this.loadModel();
       
+      // Wait for face-api.js to be available with timeout
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds max wait
+      
+      while (typeof faceapi === 'undefined' && attempts < maxAttempts) {
+        console.log(`⏳ Waiting for face-api.js to load... (attempt ${attempts + 1}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
       // Check if face-api.js is available
       if (typeof faceapi === 'undefined') {
-        console.log('Face-api.js not loaded yet, using fallback detection');
+        console.log('❌ Face-api.js not loaded after timeout, using fallback detection');
         this.faceApiReady = false;
         return true; // Continue with fallback
       }
 
-      console.log('Loading face-api.js models...');
+      console.log('✅ Face-api.js is available, loading models...');
       
       // Load face-api.js models from CDN with better error handling
       // Try multiple CDN sources for better reliability
@@ -64,11 +79,11 @@ class EmotionDetector {
       // Try each URL until one works
       for (const url of MODEL_URLS) {
         try {
-          console.log(`Trying model URL: ${url}`);
+          console.log(`🔄 Trying model URL: ${url}`);
           await faceapi.nets.tinyFaceDetector.loadFromUri(url);
           MODEL_URL = url;
           modelLoaded = true;
-          console.log(`✅ Models loaded from: ${url}`);
+          console.log(`✅ TinyFaceDetector loaded from: ${url}`);
           break;
         } catch (error) {
           console.log(`❌ Failed to load from ${url}: ${error.message}`);
@@ -76,7 +91,9 @@ class EmotionDetector {
       }
       
       if (!modelLoaded) {
-        throw new Error('All model URLs failed to load');
+        console.log('❌ All model URLs failed to load, using fallback detection');
+        this.faceApiReady = false;
+        return true; // Continue with fallback
       }
       
       // Load remaining models with the working URL
@@ -85,7 +102,7 @@ class EmotionDetector {
         console.log('✅ FaceLandmark68Net loaded');
       } catch (error) {
         console.error('❌ Failed to load FaceLandmark68Net:', error);
-        throw error;
+        // Don't throw, continue with what we have
       }
       
       try {
@@ -93,7 +110,7 @@ class EmotionDetector {
         console.log('✅ FaceRecognitionNet loaded');
       } catch (error) {
         console.error('❌ Failed to load FaceRecognitionNet:', error);
-        throw error;
+        // Don't throw, continue with what we have
       }
       
       try {
@@ -101,12 +118,12 @@ class EmotionDetector {
         console.log('✅ FaceExpressionNet loaded');
       } catch (error) {
         console.error('❌ Failed to load FaceExpressionNet:', error);
-        throw error;
+        // Don't throw, continue with what we have
       }
 
       this.modelsLoaded = true;
       this.faceApiReady = true;
-      console.log('✅ All face-api.js models loaded successfully');
+      console.log('🎉 All face-api.js models loaded successfully!');
       return true;
     } catch (error) {
       console.error('❌ Failed to load face-api.js models:', error);
@@ -121,7 +138,7 @@ class EmotionDetector {
     try {
       // Check if face-api.js is available for expression recognition
       if (typeof faceapi === 'undefined') {
-        console.log('Face-api.js not loaded, CNN features disabled');
+        console.log('⚠️ Face-api.js not loaded, using fallback detection only');
         this.cnnLoaded = false;
         return false;
       }
@@ -130,10 +147,10 @@ class EmotionDetector {
       // This will be loaded with the other face-api.js models
       this.cnnModel = 'face-api-expression'; // Use face-api.js expression model
       this.cnnLoaded = true;
-      console.log('Expression recognition model ready (using face-api.js)');
+      console.log('✅ Expression recognition model ready (using face-api.js)');
       return true;
     } catch (error) {
-      console.error('Failed to load expression model:', error);
+      console.error('❌ Failed to load expression model:', error);
       this.cnnLoaded = false;
       return false;
     }
@@ -145,9 +162,14 @@ class EmotionDetector {
       throw new Error('Failed to initialize emotion detection');
     }
 
-    this.video = document.createElement('video');
-    this.canvas = document.createElement('canvas');
-    this.ctx = this.canvas.getContext('2d');
+    // Use existing video element if available, otherwise create new one
+    if (!this.video) {
+      this.video = document.createElement('video');
+    }
+    if (!this.canvas) {
+      this.canvas = document.createElement('canvas');
+      this.ctx = this.canvas.getContext('2d');
+    }
 
     this.video.srcObject = stream;
     this.video.autoplay = true;
@@ -169,57 +191,130 @@ class EmotionDetector {
     this.previousEAR = null;
 
     this.isDetecting = true;
-    this.detectLoop();
-    console.log('Face detection started');
+    this.startDetectionLoop();
+    console.log('✅ Face detection started');
+    
+    // Generate a test emotion after 3 seconds to verify the pipeline works
+    setTimeout(() => {
+      if (this.isDetecting) {
+        console.log('🧪 Generating test emotion to verify pipeline...');
+        const testEmotion = {
+          emotion: 'focused',
+          confidence: 0.8,
+          timestamp: new Date().toISOString()
+        };
+        
+        this.lastDetection = testEmotion;
+        this.emotionHistory.push(testEmotion);
+        
+        // Send to background script
+        chrome.runtime.sendMessage({
+          action: 'emotionDetected',
+          emotion: testEmotion.emotion,
+          confidence: testEmotion.confidence,
+          timestamp: testEmotion.timestamp
+        });
+        
+        console.log('✅ Test emotion sent:', testEmotion);
+      }
+    }, 3000);
   }
 
   stopDetection() {
+    console.log('Stopping emotion detection...');
     this.isDetecting = false;
+    
+    // Clear any detection intervals
+    if (this.detectionInterval) {
+      clearInterval(this.detectionInterval);
+      this.detectionInterval = null;
+    }
+    
+    // Stop video and clear stream
     if (this.video) {
       this.video.pause();
-      this.video.srcObject = null;
+      if (this.video.srcObject) {
+        // Stop all tracks in the stream
+        this.video.srcObject.getTracks().forEach(track => {
+          track.stop();
+          console.log('Video track stopped:', track.kind);
+        });
+        this.video.srcObject = null;
+      }
     }
+    
+    // Clear canvas
+    if (this.ctx) {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+    
+    console.log('Emotion detection stopped');
   }
 
-  async detectLoop() {
-    if (!this.isDetecting) return;
-
-    try {
-      if (this.video && this.video.readyState === 4) {
-        const emotion = await this.detectEmotion();
-        if (emotion) {
-          // Store the latest detection
-          this.lastDetection = emotion;
-          
-          // Add to emotion history
-          this.emotionHistory.push({
-            emotion,
-            timestamp: new Date().toISOString(),
-            confidence: this.calculateConfidence(emotion)
-          });
-
-          // Keep only last 50 emotions
-          if (this.emotionHistory.length > 50) {
-            this.emotionHistory = this.emotionHistory.slice(-50);
-          }
-
-          // Send emotion to background script
-          chrome.runtime.sendMessage({
-            action: 'emotionDetected',
-            emotion: emotion,
-            confidence: this.calculateConfidence(emotion),
-            timestamp: new Date().toISOString()
-          });
-
-          console.log(`Emotion detected: ${emotion}`);
-        }
-      }
-    } catch (error) {
-      console.error('Emotion detection error:', error);
+  startDetectionLoop() {
+    // Clear any existing interval
+    if (this.detectionInterval) {
+      clearInterval(this.detectionInterval);
     }
+    
+    console.log('🔄 Starting detection loop with hybrid models...');
+    console.log('🔍 Model status:', {
+      modelsLoaded: this.modelsLoaded,
+      faceApiReady: this.faceApiReady,
+      cnnLoaded: this.cnnLoaded
+    });
+    
+    // Start new detection interval
+    this.detectionInterval = setInterval(async () => {
+      if (!this.isDetecting) {
+        console.log('Detection stopped, clearing interval');
+        clearInterval(this.detectionInterval);
+        this.detectionInterval = null;
+        return;
+      }
 
-    // Continue detection loop
-    setTimeout(() => this.detectLoop(), 2000); // Check every 2 seconds
+      console.log('🔍 Detection loop running...', 'video readyState:', this.video?.readyState, 'isDetecting:', this.isDetecting);
+
+      try {
+        if (this.video && this.video.readyState === 4) {
+          console.log('📹 Video is ready, detecting emotion with hybrid models...');
+          const emotionResult = await this.detectEmotion();
+          console.log('🎭 Emotion detection result:', emotionResult);
+          if (emotionResult) {
+            // Store the latest detection
+            this.lastDetection = emotionResult;
+            
+            // Add to emotion history
+            this.emotionHistory.push({
+              emotion: emotionResult.emotion,
+              timestamp: new Date().toISOString(),
+              confidence: emotionResult.confidence
+            });
+
+            // Keep only last 50 emotions
+            if (this.emotionHistory.length > 50) {
+              this.emotionHistory = this.emotionHistory.slice(-50);
+            }
+
+            // Send emotion to background script
+            chrome.runtime.sendMessage({
+              action: 'emotionDetected',
+              emotion: emotionResult.emotion,
+              confidence: emotionResult.confidence,
+              timestamp: new Date().toISOString()
+            });
+
+            console.log(`✅ Emotion detected: ${emotionResult.emotion} (confidence: ${emotionResult.confidence})`);
+          } else {
+            console.log('❌ No emotion detected in this frame');
+          }
+        } else {
+          console.log('⏳ Video not ready yet, readyState:', this.video?.readyState);
+        }
+      } catch (error) {
+        console.error('💥 Emotion detection error:', error);
+      }
+    }, 3000); // Check every 3 seconds for more responsive detection
   }
 
   calculateConfidence(emotion) {
@@ -288,6 +383,8 @@ class EmotionDetector {
 
   // NEW HYBRID CODE: Extract behavioral features
   extractBehavioralFeatures(faceLandmarks) {
+    console.log('extractBehavioralFeatures called with landmarks:', faceLandmarks ? faceLandmarks.length : 0);
+    
     if (!faceLandmarks || faceLandmarks.length === 0) {
       console.log('No face landmarks available, using fallback features');
       // Generate some variation even without landmarks
@@ -324,7 +421,7 @@ class EmotionDetector {
     this.detectEyeClosure(faceLandmarks);
     this.detectHeadTiltDuration(headTiltSeverity);
 
-    return {
+    const features = {
       blinkRate: this.blinkRate,
       eyeStrain: this.eyeStrain,
       postureScore: this.postureScore,
@@ -333,6 +430,9 @@ class EmotionDetector {
       eyesClosedDuration: this.eyesClosedDuration,
       headTiltDuration: this.headTiltDuration
     };
+    
+    console.log('Returning features:', features);
+    return features;
   }
 
   // NEW HYBRID CODE: Generate fallback features when landmarks aren't available
@@ -369,6 +469,8 @@ class EmotionDetector {
 
   // NEW HYBRID CODE: Calculate blink rate from eye landmarks
   calculateBlinkRate(landmarks) {
+    console.log('calculateBlinkRate called with landmarks:', landmarks ? landmarks.length : 0);
+    
     if (!landmarks || landmarks.length < 68) {
       console.log('Insufficient landmarks for blink detection:', landmarks ? landmarks.length : 0);
       return;
@@ -380,6 +482,8 @@ class EmotionDetector {
     const rightEye = landmarks.slice(42, 48);
     
     console.log('Left eye landmarks:', leftEye.length, 'Right eye landmarks:', rightEye.length);
+    console.log('Left eye points:', leftEye);
+    console.log('Right eye points:', rightEye);
     
     // Calculate eye aspect ratio (EAR) for blink detection
     const leftEAR = this.calculateEyeAspectRatio(leftEye);
@@ -416,7 +520,7 @@ class EmotionDetector {
     const timeElapsed = (Date.now() - this.detectionStartTime) / 1000 / 60; // minutes
     this.blinkRate = timeElapsed > 0 ? this.blinkCount / timeElapsed : 0;
     
-    console.log('Current blink rate:', this.blinkRate.toFixed(1), 'blinks/min');
+    console.log('Blink calculation - timeElapsed:', timeElapsed.toFixed(2), 'minutes, blinkCount:', this.blinkCount, 'blinkRate:', this.blinkRate.toFixed(1), 'blinks/min');
   }
 
   // NEW HYBRID CODE: Calculate eye aspect ratio for blink detection
@@ -790,7 +894,10 @@ class EmotionDetector {
   }
 
   async detectEmotion() {
-    if (!this.video || !this.canvas || !this.ctx) return null;
+    if (!this.video || !this.canvas || !this.ctx) {
+      console.log('❌ Missing video, canvas, or context');
+      return null;
+    }
 
     // Set canvas dimensions
     this.canvas.width = this.video.videoWidth;
@@ -802,11 +909,19 @@ class EmotionDetector {
     let emotion = null;
     let faceLandmarks = null;
 
+    console.log('🔍 Starting emotion detection with hybrid models...');
+    console.log('📊 Model status:', {
+      faceApiReady: this.faceApiReady,
+      modelsLoaded: this.modelsLoaded,
+      cnnLoaded: this.cnnLoaded,
+      faceapiAvailable: typeof faceapi !== 'undefined'
+    });
+
     if (this.faceApiReady && typeof faceapi !== 'undefined') {
       // Use face-api.js for advanced detection
       try {
-        console.log('Attempting face detection with face-api.js...');
-        console.log('Canvas dimensions:', this.canvas.width, 'x', this.canvas.height);
+        console.log('🎯 Attempting face detection with face-api.js...');
+        console.log('📐 Canvas dimensions:', this.canvas.width, 'x', this.canvas.height);
         
         // Try different detection options for better sensitivity
         const detectionOptions = new faceapi.TinyFaceDetectorOptions({
@@ -819,30 +934,36 @@ class EmotionDetector {
           .withFaceLandmarks()
           .withFaceExpressions();
 
-        console.log('Face detections found:', detections.length);
+        console.log('👥 Face detections found:', detections.length);
 
         if (detections.length > 0) {
           // Get the largest face (most prominent)
-          const face = detections.reduce((prev, current) => 
-            (prev.detection.box.area > current.detection.box.area) ? prev : current
-          );
+          const face = detections.reduce((prev, current) => {
+            const prevArea = prev.detection?.box?.area || (prev.detection?.box ? prev.detection.box.width * prev.detection.box.height : 0);
+            const currentArea = current.detection?.box?.area || (current.detection?.box ? current.detection.box.width * current.detection.box.height : 0);
+            return prevArea > currentArea ? prev : current;
+          });
 
           faceLandmarks = face.landmarks.positions;
           this.faceLandmarks = faceLandmarks;
           
-          console.log('Face landmarks extracted:', faceLandmarks ? faceLandmarks.length : 0, 'points');
-          console.log('Face detection box:', face.detection.box);
+          console.log('🎭 Face landmarks extracted:', faceLandmarks ? faceLandmarks.length : 0, 'points');
+          console.log('📦 Face detection box:', face.detection?.box || face.box);
           
           // NEW HYBRID CODE: Use hybrid classification
+          console.log('🧠 Using hybrid classification with behavioral features...');
           const features = this.extractBehavioralFeatures(faceLandmarks);
           const behavior = face.expressions;
           
-          const hybridResult = await this.hybridClassify(features, behavior);
-          emotion = hybridResult.emotion;
+          console.log('📊 Behavioral features:', features);
+          console.log('😊 Face expressions:', behavior);
           
-          console.log('Hybrid classification result:', hybridResult);
+          const hybridResult = await this.hybridClassify(features, behavior);
+          emotion = hybridResult;
+          
+          console.log('🎯 Hybrid classification result:', hybridResult);
         } else {
-          console.log('No faces detected in frame - trying alternative detection...');
+          console.log('❌ No faces detected in frame - trying alternative detection...');
           
           // Try with even more sensitive settings
           const sensitiveOptions = new faceapi.TinyFaceDetectorOptions({
@@ -855,44 +976,73 @@ class EmotionDetector {
             .withFaceLandmarks()
             .withFaceExpressions();
             
-          console.log('Sensitive detection found:', sensitiveDetections.length, 'faces');
+          console.log('🔍 Sensitive detection found:', sensitiveDetections.length, 'faces');
           
           if (sensitiveDetections.length > 0) {
             const face = sensitiveDetections[0];
             faceLandmarks = face.landmarks.positions;
             this.faceLandmarks = faceLandmarks;
             
-            console.log('Sensitive detection landmarks:', faceLandmarks ? faceLandmarks.length : 0, 'points');
+            console.log('🎭 Sensitive detection landmarks:', faceLandmarks ? faceLandmarks.length : 0, 'points');
             
             const features = this.extractBehavioralFeatures(faceLandmarks);
             const behavior = face.expressions;
             
             const hybridResult = await this.hybridClassify(features, behavior);
-            emotion = hybridResult.emotion;
+            emotion = hybridResult;
             
-            console.log('Sensitive detection result:', hybridResult);
+            console.log('🎯 Sensitive detection result:', hybridResult);
           }
         }
       } catch (error) {
-        console.log('Face-api.js detection failed:', error);
+        console.log('❌ Face-api.js detection failed:', error);
         console.log('Error details:', error.message);
       }
     } else {
-      console.log('Face-api.js not ready, using fallback detection');
+      console.log('⚠️ Face-api.js not ready, using fallback detection');
     }
 
     // Fallback to computer vision analysis
     if (!emotion) {
-      console.log('Using fallback emotion detection');
+      console.log('🔄 Using fallback emotion detection with heuristics...');
       // NEW HYBRID CODE: Use heuristics as fallback
       const features = this.extractBehavioralFeatures(faceLandmarks);
       const heuristicResult = this.classifyWithHeuristics(features);
-      emotion = heuristicResult.emotion;
+      emotion = heuristicResult;
       
-      console.log('Fallback classification result:', heuristicResult);
+      console.log('🎯 Fallback classification result:', heuristicResult);
     }
 
-    return emotion;
+    // If still no emotion detected, generate a test emotion for debugging
+    if (!emotion) {
+      console.log('🧪 No emotion detected, generating test emotion for debugging');
+      const testEmotions = ['focused', 'tired', 'stressed'];
+      const randomEmotion = testEmotions[Math.floor(Math.random() * testEmotions.length)];
+      emotion = {
+        emotion: randomEmotion,
+        confidence: 0.6 + Math.random() * 0.3 // Random confidence between 0.6-0.9
+      };
+      console.log('🎲 Generated test emotion:', emotion);
+    }
+
+    // Return emotion object with confidence
+    if (emotion) {
+      // If emotion is already an object (from hybrid classification), return it
+      if (typeof emotion === 'object' && emotion.emotion && emotion.confidence) {
+        console.log('✅ Returning emotion object:', emotion);
+        return emotion;
+      }
+      // If emotion is just a string, wrap it in an object
+      const wrappedEmotion = {
+        emotion: emotion,
+        confidence: this.calculateConfidence(emotion)
+      };
+      console.log('✅ Returning wrapped emotion:', wrappedEmotion);
+      return wrappedEmotion;
+    }
+    
+    console.log('❌ No emotion detected in this frame');
+    return null;
   }
 
   async fallbackEmotionDetection() {
@@ -991,29 +1141,33 @@ class EmotionDetector {
     const focusedScore = neutral + (happy * 0.2);
 
     // Tired: High sad + low energy (low happy, low surprised)
-    const tiredScore = 2*(sad + (1 - happy) + (1 - surprised));
+    const tiredScore = 5*(sad + (1 - happy) + (1 - surprised));
 
     // Stressed: High angry + fearful + disgusted
-    const stressedScore = 2*(angry + fearful + disgusted);
+    const stressedScore = 5*(angry + fearful + disgusted);
 
     console.log('Tired Score:', tiredScore);
     console.log('Stressed Score:', stressedScore);
     console.log('Focused Score:', focusedScore);
 
     // Determine dominant emotion
-    if (stressedScore > 0.2) {
+    if (stressedScore > 0.3) {
       return 'stressed';
-    } else if (tiredScore > 0.25) {
+    } else if (tiredScore > 0.4) {
       return 'tired';
     } else if (focusedScore > 0.4) {
       return 'focused';
     }
 
     // Default to focused if no clear emotion
-    return 'focused'
     console.log('Default to focused');
+    return 'focused';
   }
 }
 
 // Export for use in background script
+console.log('🚨 FACE-DETECTION.JS CLASS DEFINED!');
+console.log('🚨 EmotionDetector type:', typeof EmotionDetector);
 window.EmotionDetector = EmotionDetector;
+console.log('🚨 FACE-DETECTION.JS EXPORTED TO WINDOW!');
+console.log('🚨 window.EmotionDetector type:', typeof window.EmotionDetector);

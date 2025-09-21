@@ -18,11 +18,7 @@ if (!fs.existsSync('package.json')) {
 // Check for required environment variables
 const requiredEnvVars = [
   'MONGODB_URI',
-  'AUTH0_SECRET',
-  'AUTH0_ISSUER_BASE_URL',
-  'AUTH0_BASE_URL',
-  'AUTH0_CLIENT_ID',
-  'AUTH0_CLIENT_SECRET',
+  'JWT_SECRET',
   'GEMINI_API_KEY'
 ];
 
@@ -41,11 +37,7 @@ for (const envVar of requiredEnvVars) {
 if (envVarsMissing) {
   console.log('\n💡 Create a .env.local file with the following variables:');
   console.log('MONGODB_URI=your_mongodb_connection_string');
-  console.log('AUTH0_SECRET=your_auth0_secret');
-  console.log('AUTH0_ISSUER_BASE_URL=https://your_auth0_domain.auth0.com');
-  console.log('AUTH0_BASE_URL=http://localhost:3000');
-  console.log('AUTH0_CLIENT_ID=your_auth0_client_id');
-  console.log('AUTH0_CLIENT_SECRET=your_auth0_client_secret');
+  console.log('JWT_SECRET=your_super_secret_jwt_key_change_this_in_production');
   console.log('GEMINI_API_KEY=your_gemini_api_key');
   process.exit(1);
 }
@@ -54,7 +46,6 @@ if (envVarsMissing) {
 const requiredPackages = [
   'next',
   'mongoose',
-  '@auth0/nextjs-auth0',
   'recharts',
   'face-api.js'
 ];
@@ -90,7 +81,7 @@ try {
   const outdated = execSync('npm outdated --json', { encoding: 'utf8' });
   const outdatedPackages = JSON.parse(outdated);
   
-  const criticalPackages = ['next', 'mongoose', '@auth0/nextjs-auth0', 'recharts'];
+  const criticalPackages = ['next', 'mongoose', 'recharts'];
   let hasCriticalOutdated = false;
   
   for (const [pkg, info] of Object.entries(outdatedPackages)) {

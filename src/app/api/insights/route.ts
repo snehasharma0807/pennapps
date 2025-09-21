@@ -34,10 +34,10 @@ export async function POST(request: NextRequest) {
 
     const totalDetections = totals.focused + totals.tired + totals.stressed;
 
-    // Only generate suggestions if we have meaningful data
+    // Only generate insights if we have meaningful data
     if (totalDetections < 5) {
       return NextResponse.json({
-        suggestions: ["Keep using the extension to generate personalized workflow suggestions!"]
+        insights: ["Not enough data yet. Keep using the extension to generate personalized insights!"]
       });
     }
 
@@ -53,67 +53,67 @@ export async function POST(request: NextRequest) {
     const overallStressed = Math.round((totals.stressed / totalDetections) * 100);
     const overallTired = Math.round((totals.tired / totalDetections) * 100);
 
-    // Create a detailed prompt for Gemini to generate actionable suggestions
-    const prompt = `Based on this productivity data from emotion tracking, generate exactly 4 actionable suggestions (exactly 1 sentence each) to improve workflow and productivity. Focus on practical, implementable recommendations.
+    // Create a detailed prompt for Gemini
+    const prompt = `Based on this productivity data from emotion tracking, generate exactly 4 concise insights (exactly 1 sentence each) as bullet points. Focus on patterns and observations.
 
 Data:
 - Overall: ${overallFocused}% focused, ${overallTired}% tired, ${overallStressed}% stressed
 - Time periods: ${JSON.stringify(formattedData, null, 2)}
 
-Generate exactly 4 suggestions about:
-1. Optimizing work schedule based on focus patterns
-2. Managing stress and energy levels
-3. Improving productivity during low-focus periods
-4. Workflow and environment improvements
+Generate exactly 4 insights about:
+1. When the user is most/least focused
+2. Stress patterns
+3. Fatigue levels
+4. Overall productivity patterns
 
-Format as exactly 4 bullet points, keep each suggestion to exactly 1 sentence, and make them actionable and specific.`;
+Format as exactly 4 bullet points, keep each insight to exactly 1 sentence, and make them observational and concise.`;
 
     try {
-      console.log('💡 Sending suggestions prompt to Gemini:', prompt.substring(0, 200) + '...');
+      console.log('🤖 Sending prompt to Gemini:', prompt.substring(0, 200) + '...');
       const geminiResponse = await getGeminiSuggestion(prompt);
-      console.log('💡 Gemini suggestions response:', geminiResponse);
+      console.log('🤖 Gemini response:', geminiResponse);
       
       // Parse the response into bullet points
-      let suggestions = geminiResponse
+      let insights = geminiResponse
         .split('\n')
         .filter(line => line.trim().length > 0)
         .map(line => line.replace(/^[-•*]\s*/, '').trim())
         .filter(line => line.length > 10); // Filter out very short lines
 
-      // Ensure we have exactly 4 suggestions
-      if (suggestions.length > 4) {
-        suggestions = suggestions.slice(0, 4);
-      } else if (suggestions.length < 4) {
-        // If we have fewer than 4, pad with generic suggestions
-        const genericSuggestions = [
-          "Schedule your most important tasks during your peak focus hours.",
-          "Take regular breaks every 25-30 minutes to maintain energy levels.",
-          "Create a distraction-free workspace to improve concentration.",
-          "Practice stress management techniques like deep breathing or meditation."
+      // Ensure we have exactly 4 insights
+      if (insights.length > 4) {
+        insights = insights.slice(0, 4);
+      } else if (insights.length < 4) {
+        // If we have fewer than 4, pad with generic insights
+        const genericInsights = [
+          "Your productivity patterns show room for optimization.",
+          "Consider adjusting your work environment for better focus.",
+          "Your stress levels indicate potential for better work-life balance.",
+          "Time management improvements could enhance your productivity."
         ];
-        while (suggestions.length < 4) {
-          suggestions.push(genericSuggestions[suggestions.length] || "Continue experimenting with different productivity strategies.");
+        while (insights.length < 4) {
+          insights.push(genericInsights[insights.length] || "Continue monitoring your productivity patterns for better insights.");
         }
       }
 
-      console.log('📋 Parsed suggestions:', suggestions);
+      console.log('📝 Parsed insights:', insights);
       
-      if (suggestions.length === 0) {
+      if (insights.length === 0) {
         return NextResponse.json({ 
-          error: 'No suggestions could be generated from the response.' 
+          error: 'No insights could be generated from the response.' 
         }, { status: 500 });
       }
 
-      return NextResponse.json({ suggestions });
+      return NextResponse.json({ insights });
     } catch (geminiError) {
       console.error('❌ Gemini API error:', geminiError);
       return NextResponse.json({ 
-        error: `Failed to generate suggestions: ${geminiError instanceof Error ? geminiError.message : 'Unknown error'}` 
+        error: `Failed to generate insights: ${geminiError instanceof Error ? geminiError.message : 'Unknown error'}` 
       }, { status: 500 });
     }
 
   } catch (error) {
-    console.error('Error generating suggestions:', error);
+    console.error('Error generating insights:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

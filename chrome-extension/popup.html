@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WorkFlow AI</title>
+  <title>intentioni.ai</title>
   <style>
     * { 
       margin: 0; 
@@ -15,8 +15,8 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
       width: 380px; 
       min-height: 500px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #1f2937;
+      background: linear-gradient(135deg, #bfcc94 0%, #93a57b 100%);
+      color: #2c423f;
       overflow-x: hidden;
     }
     
@@ -79,8 +79,9 @@
     
     .app-subtitle {
       font-size: 14px;
-      color: rgba(255,255,255,0.8);
+      color: #fffd7a;
       font-weight: 400;
+      font-style: italic;
     }
     
     /* Card Styles */
@@ -297,7 +298,7 @@
     }
     
     .btn-primary {
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      background: #677d61;
       color: white;
       padding: 14px 20px;
       box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
@@ -395,6 +396,40 @@
     .emotion-tired { color: #d97706; }
     .emotion-stressed { color: #dc2626; }
     
+    /* Current Emotion Display */
+    .current-emotion-display {
+      text-align: center;
+      padding: 20px 0;
+    }
+    
+    .emotion-emoji-large {
+      font-size: 48px;
+      margin-bottom: 12px;
+      animation: pulse 2s infinite;
+    }
+    
+    .emotion-name-large {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: capitalize;
+    }
+    
+    .emotion-time-large {
+      font-size: 14px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    
+    .emotion-confidence {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
     .no-data {
       text-align: center;
       padding: 20px;
@@ -416,28 +451,21 @@
       <div class="logo-container">
         <span class="logo-icon">🧠</span>
       </div>
-      <h1 class="app-title">WorkFlow AI</h1>
-      <p class="app-subtitle">Smart productivity companion</p>
+      <h1 class="app-title">intentioni.ai</h1>
+      <p class="app-subtitle">intentional productivity.</p>
     </div>
 
-    <!-- Status Card -->
-    <div class="card status-card">
-      <div class="status-header">
-        <span class="status-title">System Status</span>
-        <div id="status-indicator" class="status-indicator status-inactive">
-          <div class="status-dot"></div>
-          <span>Inactive</span>
-        </div>
+
+    <!-- Current Emotion Card -->
+    <div class="card" id="current-emotion-card" style="display: none;">
+      <div class="emotions-header">
+        <span class="emotions-title">Current State</span>
+        <span class="emotion-confidence" id="emotion-confidence">0%</span>
       </div>
-      <div class="status-details">
-        <div class="status-item">
-          <span class="status-label">Webcam</span>
-          <span class="status-value" id="webcam-status">Not active</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Last Detection</span>
-          <span class="status-value" id="last-detection">Never</span>
-        </div>
+      <div class="current-emotion-display">
+        <div class="emotion-emoji-large" id="current-emotion-emoji">🤔</div>
+        <div class="emotion-name-large" id="current-emotion-name">Analyzing...</div>
+        <div class="emotion-time-large" id="current-emotion-time">Just now</div>
       </div>
     </div>
 
@@ -449,7 +477,7 @@
           <div class="control-title">Webcam Monitoring</div>
           <div class="control-description">Detect emotions via webcam</div>
         </div>
-        <div class="toggle" id="webcam-toggle" onclick="toggleWebcam()"></div>
+        <div class="toggle" id="webcam-toggle"></div>
       </div>
 
       <!-- Notifications Toggle -->
@@ -458,24 +486,26 @@
           <div class="control-title">Smart Notifications</div>
           <div class="control-description">Get AI-powered suggestions</div>
         </div>
-        <div class="toggle active" id="notifications-toggle" onclick="toggleNotifications()"></div>
+        <div class="toggle active" id="notifications-toggle"></div>
       </div>
 
-      <!-- Notification Interval -->
-      <div class="control-item">
-        <div class="control-info">
-          <div class="control-title">Notification Interval</div>
-          <div class="control-description">How often to receive suggestions</div>
-        </div>
+    </div>
+
+    <!-- Authentication Card -->
+    <div class="card" id="auth-card">
+      <div class="emotions-header">
+        <span class="emotions-title">Authentication</span>
+        <span class="emotions-count" id="auth-status">Not connected</span>
       </div>
-      <div class="select-container">
-        <select id="notification-interval">
-          <option value="5">5 minutes</option>
-          <option value="10">10 minutes</option>
-          <option value="15" selected>15 minutes</option>
-          <option value="30">30 minutes</option>
-          <option value="60">1 hour</option>
-        </select>
+      <div id="auth-content">
+        <div class="no-data" id="auth-message">Please log in to sync your emotion data</div>
+        <div style="margin-top: 12px;">
+          <input type="text" id="auth-token" placeholder="Enter your JWT token" 
+                 style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; font-size: 12px;">
+          <button id="auth-login" class="btn btn-primary" style="width: 100%; padding: 8px; font-size: 12px;">
+            🔐 Connect Account
+          </button>
+        </div>
       </div>
     </div>
 
@@ -484,21 +514,8 @@
       <button id="open-dashboard" class="btn btn-primary">
         🚀 Open Dashboard
       </button>
-      <button id="test-notification" class="btn btn-secondary">
-        🔔 Test Notification
-      </button>
     </div>
 
-    <!-- Recent Emotions -->
-    <div class="card">
-      <div class="emotions-header">
-        <span class="emotions-title">Recent Emotions</span>
-        <span class="emotions-count" id="emotions-count">0</span>
-      </div>
-      <div id="recent-emotions">
-        <div class="no-data">No recent data available</div>
-      </div>
-    </div>
   </div>
 
   <script src="config.js"></script>
