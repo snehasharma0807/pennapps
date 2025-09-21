@@ -654,7 +654,7 @@ async function sendEmotionToAPI(emotion, confidence) {
       return;
     }
 
-    const response = await fetch('http://localhost:3002/api/emotions', {
+    const response = await fetch('http://localhost:3000/api/emotions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -738,6 +738,6 @@ function showTestNotification() {
 
 // Handle notification clicks
 chrome.notifications.onClicked.addListener((notificationId) => {
-  chrome.tabs.create({ url: 'http://localhost:3002/dashboard' });
+  chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
   chrome.notifications.clear(notificationId);
 });

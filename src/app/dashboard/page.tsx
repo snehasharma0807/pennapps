@@ -22,6 +22,10 @@ export default function Dashboard() {
   const [token, setToken] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastDataFetch, setLastDataFetch] = useState<number>(0);
+  const [aiInsights, setAiInsights] = useState<string[]>([]);
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
 
   // Initialize dark mode from localStorage
   useEffect(() => {
@@ -127,6 +131,87 @@ export default function Dashboard() {
     } finally {
       setIsRefreshing(false);
       setEmotionLoading(false);
+    }
+  };
+
+  // Generate AI insights from current data
+  const generateAiInsights = async () => {
+    if (!token) {
+      alert('Please log in to generate insights');
+      return;
+    }
+
+    if (!displayData.timeRangeData) {
+      alert('No data available to generate insights');
+      return;
+    }
+
+    setIsGeneratingInsights(true);
+    try {
+      console.log('🤖 Sending data to insights API:', displayData.timeRangeData);
+      const response = await fetch('/api/insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          timeRangeData: displayData.timeRangeData
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAiInsights(data.insights || []);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to generate insights: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      alert('Error generating insights. Please try again.');
+    } finally {
+      setIsGeneratingInsights(false);
+    }
+  };
+
+  const generateAiSuggestions = async () => {
+    if (!token) {
+      alert('Please log in to generate suggestions');
+      return;
+    }
+
+    if (!displayData.timeRangeData) {
+      alert('No data available to generate suggestions');
+      return;
+    }
+
+    setIsGeneratingSuggestions(true);
+    try {
+      console.log('💡 Sending data to suggestions API:', displayData.timeRangeData);
+      const response = await fetch('/api/suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          timeRangeData: displayData.timeRangeData
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAiSuggestions(data.suggestions || []);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to generate suggestions: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error generating suggestions:', error);
+      alert('Error generating suggestions. Please try again.');
+    } finally {
+      setIsGeneratingSuggestions(false);
     }
   };
 
@@ -408,6 +493,7 @@ export default function Dashboard() {
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
 
+
             {/* View Toggle */}
             <div className="flex rounded-xl p-1 backdrop-blur-sm shadow-lg border transition-all duration-500" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}}>
               <button
@@ -450,13 +536,56 @@ export default function Dashboard() {
         <div className="mb-16">
           <div className="rounded-2xl p-8 backdrop-blur-sm shadow-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
             <div>
-              <ProductivityDashboard 
-                timeRangeData={displayData.timeRangeData} 
-                isDarkMode={isDarkMode}
-                viewMode={viewMode}
-              />
+            <ProductivityDashboard 
+              timeRangeData={displayData.timeRangeData}
+              isDarkMode={isDarkMode}
+              viewMode={viewMode}
+            />
+            
+            {/* Generate AI Buttons */}
+            <div className="mt-8 flex justify-center gap-4">
+              <button
+                onClick={generateAiInsights}
+                disabled={isGeneratingInsights || !token || !emotionData}
+                className={`px-6 py-4 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
+                  isGeneratingInsights || !token || !emotionData
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'hover:scale-105 active:scale-95'
+                }`}
+                style={{
+                  backgroundColor: '#8b5cf6',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)'
+                }}
+                title={!token ? 'Please login to generate insights' : !emotionData ? 'No data available for insights' : 'Generate AI-powered insights from your productivity data'}
+              >
+                <Brain 
+                  className={`h-5 w-5 mr-3 inline ${isGeneratingInsights ? 'animate-pulse' : ''}`} 
+                />
+                {isGeneratingInsights ? 'Generating Insights...' : 'Generate AI Insights'}
+              </button>
               
-              
+              <button
+                onClick={generateAiSuggestions}
+                disabled={isGeneratingSuggestions || !token || !emotionData}
+                className={`px-6 py-4 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
+                  isGeneratingSuggestions || !token || !emotionData
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'hover:scale-105 active:scale-95'
+                }`}
+                style={{
+                  backgroundColor: '#93a57b',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 15px rgba(147, 165, 123, 0.3)'
+                }}
+                title={!token ? 'Please login to generate suggestions' : !emotionData ? 'No data available for suggestions' : 'Generate AI-powered suggestions to improve your workflow'}
+              >
+                <Clock 
+                  className={`h-5 w-5 mr-3 inline ${isGeneratingSuggestions ? 'animate-pulse' : ''}`} 
+                />
+                {isGeneratingSuggestions ? 'Generating Suggestions...' : 'Generate AI Suggestions'}
+              </button>
+            </div>
 
             </div>
           </div>
@@ -483,17 +612,35 @@ export default function Dashboard() {
                 Insights
               </h2>
             </div>
-            <div className="text-center py-20 transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
-              <div className="transition-all duration-500 group-hover:opacity-90">
-                <Brain className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#677d61'}} />
-                <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>Data Analysis</p>
-                <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
-                  {viewMode === 'daily' 
-                    ? 'Analyzing your daily emotional patterns and productivity trends' 
-                    : 'Analyzing your weekly emotional patterns and productivity trends'
-                  }
-                </p>
-              </div>
+            <div className="transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+              {aiInsights.length > 0 ? (
+                <div className="p-8">
+                  <div className="flex items-center justify-center mb-6">
+                    <Brain className="h-8 w-8 mr-3" style={{color: '#677d61'}} />
+                    <p className="text-xl font-bold" style={{color: darkModeStyles.text}}>AI-Generated Insights</p>
+                  </div>
+                  <div className="space-y-4">
+                    {aiInsights.map((insight, index) => (
+                      <div key={index} className="p-4 rounded-lg border" style={{backgroundColor: isDarkMode ? 'rgba(103, 125, 97, 0.1)' : 'rgba(103, 125, 97, 0.05)', borderColor: isDarkMode ? 'rgba(103, 125, 97, 0.3)' : 'rgba(103, 125, 97, 0.2)'}}>
+                        <p className="text-sm font-medium" style={{color: darkModeStyles.text}}>
+                          {insight}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-20 transition-all duration-500 group-hover:opacity-90">
+                  <Brain className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#677d61'}} />
+                  <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>Data Analysis</p>
+                  <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
+                    {viewMode === 'daily' 
+                      ? 'Analyzing your daily emotional patterns and productivity trends' 
+                      : 'Analyzing your weekly emotional patterns and productivity trends'
+                    }
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -515,17 +662,35 @@ export default function Dashboard() {
                 Suggestions
               </h2>
             </div>
-            <div className="text-center py-20 transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
-              <div className="transition-all duration-500 group-hover:opacity-90">
-                <Clock className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#93a57b'}} />
-                <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>Personalized Recommendations</p>
-                <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
-                  {viewMode === 'daily' 
-                    ? 'Get daily tips to optimize your productivity and well-being' 
-                    : 'Get weekly recommendations to improve your work-life balance'
-                  }
-                </p>
-              </div>
+            <div className="transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+              {aiSuggestions.length > 0 ? (
+                <div className="p-8">
+                  <div className="flex items-center justify-center mb-6">
+                    <Clock className="h-8 w-8 mr-3" style={{color: '#93a57b'}} />
+                    <p className="text-xl font-bold" style={{color: darkModeStyles.text}}>AI-Generated Suggestions</p>
+                  </div>
+                  <div className="space-y-4">
+                    {aiSuggestions.map((suggestion, index) => (
+                      <div key={index} className="p-4 rounded-lg border" style={{backgroundColor: isDarkMode ? 'rgba(147, 165, 123, 0.1)' : 'rgba(147, 165, 123, 0.05)', borderColor: isDarkMode ? 'rgba(147, 165, 123, 0.3)' : 'rgba(147, 165, 123, 0.2)'}}>
+                        <p className="text-sm font-medium" style={{color: darkModeStyles.text}}>
+                          {suggestion}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-20 transition-all duration-500 group-hover:opacity-90">
+                  <Clock className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#93a57b'}} />
+                  <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>Personalized Recommendations</p>
+                  <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
+                    {viewMode === 'daily' 
+                      ? 'Get daily tips to optimize your productivity and well-being' 
+                      : 'Get weekly recommendations to improve your work-life balance'
+                    }
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

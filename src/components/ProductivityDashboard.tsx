@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, AlertTriangle, Lightbulb, CheckCircle } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Lightbulb, CheckCircle, Brain } from 'lucide-react';
 
 interface TimeRangeData {
   name: string;

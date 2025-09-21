@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     openDashboardBtn.disabled = true;
     
     try {
-      await chrome.tabs.create({ url: 'http://localhost:3002/dashboard' });
+      await chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
     } catch (error) {
       console.error('Failed to open dashboard:', error);
       openDashboardBtn.innerHTML = '❌ Failed to open';
@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     authLogin.disabled = true;
 
     try {
-      const response = await fetch('http://localhost:3002/api/extension-auth', {
+      const response = await fetch('http://localhost:3000/api/extension-auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
