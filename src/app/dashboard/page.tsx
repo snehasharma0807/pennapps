@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, BarChart3, Brain, Clock, Calendar, TrendingUp, Settings, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, BarChart3, Brain, Clock, Calendar, TrendingUp, Settings } from 'lucide-react';
 import Link from 'next/link';
+import LogoButton from '@/components/LogoButton';
+import { motion } from 'framer-motion';
+// import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
 import ProductivityDashboard from '@/components/ProductivityDashboard';
-import Logo from '@/components/Logo';
 
 export default function Dashboard() {
   // const { user, isLoading } = useUser();
@@ -15,7 +17,6 @@ export default function Dashboard() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'daily' | 'weekly'>('daily');
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [emotionData, setEmotionData] = useState<any>(null);
   const [emotionLoading, setEmotionLoading] = useState(false);
   const [showToken, setShowToken] = useState(false);
@@ -27,13 +28,6 @@ export default function Dashboard() {
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
 
-  // Initialize dark mode from localStorage
-  useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode');
-    if (savedDarkMode !== null) {
-      setIsDarkMode(JSON.parse(savedDarkMode));
-    }
-  }, []);
 
   // Initialize token from localStorage
   useEffect(() => {
@@ -240,47 +234,6 @@ export default function Dashboard() {
     };
   }, [token]);
 
-  // Save dark mode preference to localStorage
-  useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
-  }, [isDarkMode]);
-
-  // Dark mode styles
-  const darkModeStyles = {
-    background: isDarkMode ? '#0f0f0f' : '#ffffff',
-    text: isDarkMode ? '#ffffff' : '#2c423f',
-    textSecondary: isDarkMode ? '#a0a0a0' : '#93a57b',
-    cardBackground: isDarkMode ? '#1a1a1a' : '#f8f9fa',
-    border: isDarkMode ? '#333333' : '#93a57b',
-    navBackground: isDarkMode ? '#1a1a1a' : '#ffffff'
-  };
-
-  // Sample data for demonstration - changes based on view mode
-  const dailyData = [
-    { name: 'Morning', period: 'Morning', hours: 7, emotions: { focused: 5, tired: 1, stressed: 1 } },
-    { name: 'Afternoon', period: 'Afternoon', hours: 5, emotions: { focused: 3, tired: 1, stressed: 1 } },
-    { name: 'Evening', period: 'Evening', hours: 7, emotions: { focused: 3, tired: 3, stressed: 1 } },
-    { name: 'Late Night', period: 'Late Night', hours: 5, emotions: { focused: 0, tired: 4, stressed: 1 } }
-  ];
-
-  const weeklyData = [
-    { name: 'Morning', period: 'Morning', hours: 49, emotions: { focused: 35, tired: 10, stressed: 4 } },
-    { name: 'Afternoon', period: 'Afternoon', hours: 35, emotions: { focused: 22, tired: 8, stressed: 5 } },
-    { name: 'Evening', period: 'Evening', hours: 49, emotions: { focused: 20, tired: 22, stressed: 7 } },
-    { name: 'Late Night', period: 'Late Night', hours: 35, emotions: { focused: 3, tired: 28, stressed: 4 } }
-  ];
-
-  // Select data based on view mode
-  const timeRangeData = viewMode === 'daily' ? dailyData : weeklyData;
-  
-  // Calculate totals dynamically
-  const emotionTotals = {
-    focused: timeRangeData.reduce((sum, range) => sum + range.emotions.focused, 0),
-    tired: timeRangeData.reduce((sum, range) => sum + range.emotions.tired, 0),
-    stressed: timeRangeData.reduce((sum, range) => sum + range.emotions.stressed, 0)
-  };
-
-
 
   // Use real data if available, otherwise use sample data
   const displayData = useMemo(() => {
@@ -374,6 +327,41 @@ export default function Dashboard() {
     return { timeRangeData, emotionTotals };
   }, [emotionData]);
 
+  // Light mode styles with softer greys
+  const styles = {
+    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+    text: '#2c423f',
+    textSecondary: '#93a57b',
+    cardBackground: 'rgba(255, 255, 255, 0.8)',
+    border: '#93a57b',
+    navBackground: 'rgba(255, 255, 255, 0.9)'
+  };
+
+  // Sample data for demonstration - changes based on view mode
+  const dailyData = [
+    { name: 'Morning', period: 'Morning', hours: 7, emotions: { focused: 5, tired: 1, stressed: 1 } },
+    { name: 'Afternoon', period: 'Afternoon', hours: 5, emotions: { focused: 3, tired: 1, stressed: 1 } },
+    { name: 'Evening', period: 'Evening', hours: 7, emotions: { focused: 3, tired: 3, stressed: 1 } },
+    { name: 'Late Night', period: 'Late Night', hours: 5, emotions: { focused: 0, tired: 4, stressed: 1 } }
+  ];
+
+  const weeklyData = [
+    { name: 'Morning', period: 'Morning', hours: 49, emotions: { focused: 35, tired: 10, stressed: 4 } },
+    { name: 'Afternoon', period: 'Afternoon', hours: 35, emotions: { focused: 22, tired: 8, stressed: 5 } },
+    { name: 'Evening', period: 'Evening', hours: 49, emotions: { focused: 20, tired: 22, stressed: 7 } },
+    { name: 'Late Night', period: 'Late Night', hours: 35, emotions: { focused: 3, tired: 28, stressed: 4 } }
+  ];
+
+  // Select data based on view mode
+  const timeRangeData = viewMode === 'daily' ? dailyData : weeklyData;
+  
+  // Calculate totals dynamically
+  const emotionTotals = {
+    focused: timeRangeData.reduce((sum, range) => sum + range.emotions.focused, 0),
+    tired: timeRangeData.reduce((sum, range) => sum + range.emotions.tired, 0),
+    stressed: timeRangeData.reduce((sum, range) => sum + range.emotions.stressed, 0)
+  };
+
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/auth');
@@ -397,7 +385,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen transition-all duration-1000 ease-out relative overflow-hidden" style={{backgroundColor: darkModeStyles.background}}>
+    <div className="min-h-screen transition-all duration-1000 ease-out relative overflow-hidden" style={{backgroundImage: styles.background}}>
       {/* Background Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-green-50/20 pointer-events-none"></div>
       
@@ -411,29 +399,17 @@ export default function Dashboard() {
       </div>
       
       {/* Navigation Bar */}
-      <nav className="shadow-sm border-b transition-all duration-500 backdrop-blur-sm relative z-10" style={{backgroundColor: darkModeStyles.navBackground, borderColor: darkModeStyles.border}}>
+      <nav className="shadow-sm border-b transition-all duration-500 backdrop-blur-sm relative z-10" style={{backgroundColor: styles.navBackground, borderColor: styles.border}}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="hover:opacity-80 transition-opacity">
-                <span className="text-2xl font-bold" style={{color: '#2c423f'}}>intention.ai</span>
-              </Link>
-              <h1 className="text-2xl font-bold" style={{color: darkModeStyles.text}}>Dashboard</h1>
+            <div className="flex items-center space-x-3">
+              <LogoButton size="md" isDarkMode={false} />
+              <h1 className="text-2xl font-bold" style={{color: styles.text}}>Dashboard</h1>
             </div>
             
             <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="transition-all duration-300 hover:scale-110"
-                style={{color: darkModeStyles.text}}
-              >
-                {isDarkMode ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
-                {isDarkMode ? 'Light' : 'Dark'}
-              </Button>
               <Link href="/settings">
-                <Button variant="ghost" size="sm" style={{color: darkModeStyles.text}}>
+                <Button variant="ghost" size="sm" style={{color: styles.text}}>
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </Button>
@@ -449,13 +425,13 @@ export default function Dashboard() {
           <div className="space-y-2">
             <h1 
               className="text-4xl font-bold transition-all duration-700 ease-out"
-              style={{color: darkModeStyles.text}}
+              style={{color: styles.text}}
             >
               {viewMode === 'daily' ? 'Daily Overview' : 'Weekly Overview'}
             </h1>
             <p 
               className="text-lg transition-all duration-700 ease-out opacity-80" 
-              style={{color: darkModeStyles.textSecondary}}
+              style={{color: styles.textSecondary}}
             >
               {viewMode === 'daily' 
                 ? 'Your emotional patterns throughout the day' 
@@ -464,133 +440,195 @@ export default function Dashboard() {
             </p>
           </div>
           
-          {/* View Toggle and Refresh Button */}
-          <div className="flex items-center gap-4">
-            {/* Refresh Button */}
-            <button
-              onClick={fetchEmotionData}
-              disabled={isRefreshing || !token}
-              className={`px-4 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
-                isRefreshing 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'hover:scale-105 active:scale-95'
-              }`}
-              style={{
-                backgroundColor: '#677d61',
-                color: '#ffffff',
-                boxShadow: '0 4px 15px rgba(103, 125, 97, 0.3)'
-              }}
-              title={!token ? 'Please login to refresh data' : 'Refresh emotion data from Chrome extension'}
-            >
-              <svg 
-                className={`h-4 w-4 mr-2 inline ${isRefreshing ? 'animate-spin' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              {isRefreshing ? 'Refreshing...' : 'Refresh'}
-            </button>
-
-
-            {/* View Toggle */}
-            <div className="flex rounded-xl p-1 backdrop-blur-sm shadow-lg border transition-all duration-500" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}}>
-              <button
-                onClick={() => setViewMode('daily')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
-                  viewMode === 'daily' 
-                    ? 'text-white shadow-xl scale-105' 
-                    : 'hover:scale-102'
-                }`}
-                style={{
-                  backgroundColor: viewMode === 'daily' ? '#677d61' : 'transparent',
-                  color: viewMode === 'daily' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151'),
-                  boxShadow: viewMode === 'daily' ? '0 10px 25px rgba(103, 125, 97, 0.3)' : 'none'
-                }}
-              >
-                <Calendar className="h-4 w-4 mr-2 inline" style={{color: viewMode === 'daily' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151')}} />
-                Daily
-              </button>
-              <button
-                onClick={() => setViewMode('weekly')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
-                  viewMode === 'weekly' 
-                    ? 'text-white shadow-xl scale-105' 
-                    : 'hover:scale-102'
-                }`}
-                style={{
-                  backgroundColor: viewMode === 'weekly' ? '#677d61' : 'transparent',
-                  color: viewMode === 'weekly' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151'),
-                  boxShadow: viewMode === 'weekly' ? '0 10px 25px rgba(103, 125, 97, 0.3)' : 'none'
-                }}
-              >
-                <TrendingUp className="h-4 w-4 mr-2 inline" style={{color: viewMode === 'weekly' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151')}} />
-                Weekly
-              </button>
-            </div>
-          </div>
+           {/* Enhanced View Toggle */}
+           <div className="relative">
+             {/* Animated background */}
+             <motion.div
+               className="absolute inset-0 rounded-2xl opacity-20"
+               style={{
+                 backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
+               }}
+               animate={{
+                 backgroundImage: [
+                   'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                   'linear-gradient(135deg, #f093fb 0%, #667eea 50%, #764ba2 100%)',
+                   'linear-gradient(135deg, #764ba2 0%, #f093fb 50%, #667eea 100%)',
+                   'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
+                 ]
+               }}
+               transition={{
+                 duration: 8,
+                 repeat: Infinity,
+                 ease: "linear"
+               }}
+             />
+             
+             <div className="relative flex rounded-2xl p-2 backdrop-blur-md shadow-2xl border transition-all duration-500" 
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                    borderColor: 'rgba(0, 0, 0, 0.1)',
+                    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+                  }}>
+               <motion.button
+                 onClick={() => setViewMode('daily')}
+                 className={`relative px-8 py-4 rounded-xl font-semibold transition-all duration-500 ease-out overflow-hidden ${
+                   viewMode === 'daily' 
+                     ? 'text-white' 
+                     : 'hover:text-white'
+                 }`}
+                 style={{
+                   backgroundColor: viewMode === 'daily' 
+                     ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                     : 'transparent',
+                   color: viewMode === 'daily' ? '#ffffff' : '#374151'
+                 }}
+                 whileHover={{ 
+                   scale: 1.05,
+                   y: -2
+                 }}
+                 whileTap={{ scale: 0.95 }}
+                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
+               >
+                 {/* Button background gradient */}
+                 {viewMode === 'daily' && (
+                   <motion.div
+                     className="absolute inset-0 rounded-xl"
+                     style={{
+                       backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                     }}
+                     layoutId="activeTab"
+                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                   />
+                 )}
+                 
+                 {/* Hover effect */}
+                 <motion.div
+                   className="absolute inset-0 rounded-xl opacity-0"
+                   style={{
+                     backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                   }}
+                   whileHover={{ opacity: 0.8 }}
+                   transition={{ duration: 0.3 }}
+                 />
+                 
+                 <div className="relative z-10 flex items-center">
+                   <motion.div
+                     animate={viewMode === 'daily' ? { rotate: 360 } : { rotate: 0 }}
+                     transition={{ duration: 0.5 }}
+                   >
+                     <Calendar className="h-5 w-5 mr-3" />
+                   </motion.div>
+                   <span className="text-lg">Daily</span>
+                 </div>
+                 
+                 {/* Sparkle effect */}
+                 {viewMode === 'daily' && (
+                   <motion.div
+                     className="absolute top-1 right-1 w-2 h-2 rounded-full"
+                     style={{ background: '#ffffff' }}
+                     animate={{
+                       scale: [1, 1.5, 1],
+                       opacity: [0.5, 1, 0.5]
+                     }}
+                     transition={{
+                       duration: 1.5,
+                       repeat: Infinity,
+                       repeatType: "reverse"
+                     }}
+                   />
+                 )}
+               </motion.button>
+               
+               <motion.button
+                 onClick={() => setViewMode('weekly')}
+                 className={`relative px-8 py-4 rounded-xl font-semibold transition-all duration-500 ease-out overflow-hidden ${
+                   viewMode === 'weekly' 
+                     ? 'text-white' 
+                     : 'hover:text-white'
+                 }`}
+                 style={{
+                   backgroundColor: viewMode === 'weekly' 
+                     ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                     : 'transparent',
+                   color: viewMode === 'weekly' ? '#ffffff' : '#374151'
+                 }}
+                 whileHover={{ 
+                   scale: 1.05,
+                   y: -2
+                 }}
+                 whileTap={{ scale: 0.95 }}
+                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
+               >
+                 {/* Button background gradient */}
+                 {viewMode === 'weekly' && (
+                   <motion.div
+                     className="absolute inset-0 rounded-xl"
+                     style={{
+                       backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                     }}
+                     layoutId="activeTab"
+                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                   />
+                 )}
+                 
+                 {/* Hover effect */}
+                 <motion.div
+                   className="absolute inset-0 rounded-xl opacity-0"
+                   style={{
+                     backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                   }}
+                   whileHover={{ opacity: 0.8 }}
+                   transition={{ duration: 0.3 }}
+                 />
+                 
+                 <div className="relative z-10 flex items-center">
+                   <motion.div
+                     animate={viewMode === 'weekly' ? { rotate: 360 } : { rotate: 0 }}
+                     transition={{ duration: 0.5 }}
+                   >
+                     <TrendingUp className="h-5 w-5 mr-3" />
+                   </motion.div>
+                   <span className="text-lg">Weekly</span>
+                 </div>
+                 
+                 {/* Sparkle effect */}
+                 {viewMode === 'weekly' && (
+                   <motion.div
+                     className="absolute top-1 right-1 w-2 h-2 rounded-full"
+                     style={{ background: '#ffffff' }}
+                     animate={{
+                       scale: [1, 1.5, 1],
+                       opacity: [0.5, 1, 0.5]
+                     }}
+                     transition={{
+                       duration: 1.5,
+                       repeat: Infinity,
+                       repeatType: "reverse"
+                     }}
+                   />
+                 )}
+               </motion.button>
+             </div>
+           </div>
         </div>
 
         {/* Productivity Dashboard */}
         <div className="mb-16">
-          <div className="rounded-2xl p-8 backdrop-blur-sm shadow-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
+          <div className="rounded-2xl p-8 backdrop-blur-sm shadow-2xl border relative overflow-hidden" style={{backgroundColor: 'rgba(255, 255, 255, 0.9)', borderColor: 'rgba(255, 255, 255, 0.3)'}}>
             <div>
-            <ProductivityDashboard 
-              timeRangeData={displayData.timeRangeData}
-              isDarkMode={isDarkMode}
-              viewMode={viewMode}
-            />
-            
-            {/* Generate AI Buttons */}
-            <div className="mt-8 flex justify-center gap-4">
-              <button
-                onClick={generateAiInsights}
-                disabled={isGeneratingInsights || !token || !emotionData}
-                className={`px-6 py-4 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
-                  isGeneratingInsights || !token || !emotionData
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : 'hover:scale-105 active:scale-95'
-                }`}
-                style={{
-                  backgroundColor: '#8b5cf6',
-                  color: '#ffffff',
-                  boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)'
-                }}
-                title={!token ? 'Please login to generate insights' : !emotionData ? 'No data available for insights' : 'Generate AI-powered insights from your productivity data'}
-              >
-                <Brain 
-                  className={`h-5 w-5 mr-3 inline ${isGeneratingInsights ? 'animate-pulse' : ''}`} 
-                />
-                {isGeneratingInsights ? 'Generating Insights...' : 'Generate AI Insights'}
-              </button>
+               <ProductivityDashboard 
+                 timeRangeData={displayData.timeRangeData} 
+                 viewMode={viewMode}
+               />
               
-              <button
-                onClick={generateAiSuggestions}
-                disabled={isGeneratingSuggestions || !token || !emotionData}
-                className={`px-6 py-4 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
-                  isGeneratingSuggestions || !token || !emotionData
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : 'hover:scale-105 active:scale-95'
-                }`}
-                style={{
-                  backgroundColor: '#93a57b',
-                  color: '#ffffff',
-                  boxShadow: '0 4px 15px rgba(147, 165, 123, 0.3)'
-                }}
-                title={!token ? 'Please login to generate suggestions' : !emotionData ? 'No data available for suggestions' : 'Generate AI-powered suggestions to improve your workflow'}
-              >
-                <Clock 
-                  className={`h-5 w-5 mr-3 inline ${isGeneratingSuggestions ? 'animate-pulse' : ''}`} 
-                />
-                {isGeneratingSuggestions ? 'Generating Suggestions...' : 'Generate AI Suggestions'}
-              </button>
-            </div>
-
+              <p className="text-sm mt-8 text-center opacity-70" style={{color: styles.textSecondary}}>
+                Sample data shown - Install the Chrome extension for real-time monitoring
+              </p>
             </div>
           </div>
         </div>
 
+         {/* Enhanced Stats Grid - Removed */}
 
         {/* Analytics Section */}
         <div className="grid md:grid-cols-2 gap-8 mb-16">
@@ -608,40 +646,40 @@ export default function Dashboard() {
               <div className="p-4 rounded-2xl transition-all duration-500 group-hover:shadow-xl group-hover:scale-110" style={{backgroundColor: '#677d61'}}>
                 <Brain className="h-7 w-7 text-white" />
               </div>
-              <h2 className="text-3xl font-bold ml-6 transition-all duration-500" style={{color: darkModeStyles.text}}>
+              <h2 className="text-3xl font-bold ml-6 transition-all duration-500" style={{color: styles.text}}>
                 Insights
               </h2>
             </div>
-            <div className="transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
-              {aiInsights.length > 0 ? (
-                <div className="p-8">
-                  <div className="flex items-center justify-center mb-6">
-                    <Brain className="h-8 w-8 mr-3" style={{color: '#677d61'}} />
-                    <p className="text-xl font-bold" style={{color: darkModeStyles.text}}>AI-Generated Insights</p>
-                  </div>
-                  <div className="space-y-4">
-                    {aiInsights.map((insight, index) => (
-                      <div key={index} className="p-4 rounded-lg border" style={{backgroundColor: isDarkMode ? 'rgba(103, 125, 97, 0.1)' : 'rgba(103, 125, 97, 0.05)', borderColor: isDarkMode ? 'rgba(103, 125, 97, 0.3)' : 'rgba(103, 125, 97, 0.2)'}}>
-                        <p className="text-sm font-medium" style={{color: darkModeStyles.text}}>
-                          {insight}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-20 transition-all duration-500 group-hover:opacity-90">
-                  <Brain className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#677d61'}} />
-                  <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>Data Analysis</p>
-                  <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
-                    {viewMode === 'daily' 
-                      ? 'Analyzing your daily emotional patterns and productivity trends' 
-                      : 'Analyzing your weekly emotional patterns and productivity trends'
-                    }
-                  </p>
-                </div>
-              )}
-            </div>
+             <div className="transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: 'rgba(255, 255, 255, 0.9)', borderColor: 'rgba(255, 255, 255, 0.3)'}}>
+               {aiInsights.length > 0 ? (
+                 <div className="p-8">
+                   <div className="flex items-center justify-center mb-6">
+                     <Brain className="h-8 w-8 mr-3" style={{color: '#677d61'}} />
+                     <p className="text-xl font-bold" style={{color: styles.text}}>AI-Generated Insights</p>
+                   </div>
+                   <div className="space-y-4">
+                     {aiInsights.map((insight, index) => (
+                       <div key={index} className="p-4 rounded-lg border" style={{backgroundColor: 'rgba(103, 125, 97, 0.05)', borderColor: 'rgba(103, 125, 97, 0.2)'}}>
+                         <p className="text-sm font-medium" style={{color: styles.text}}>
+                           {insight}
+                         </p>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               ) : (
+                 <div className="text-center py-20 transition-all duration-500 group-hover:opacity-90">
+                   <Brain className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#677d61'}} />
+                   <p className="text-2xl font-bold mb-4" style={{color: styles.text}}>Data Analysis</p>
+                   <p className="text-lg opacity-80" style={{color: styles.textSecondary}}>
+                     {viewMode === 'daily' 
+                       ? 'Analyzing your daily emotional patterns and productivity trends' 
+                       : 'Analyzing your weekly emotional patterns and productivity trends'
+                     }
+                   </p>
+                 </div>
+               )}
+             </div>
           </div>
 
           {/* Suggestions */}
@@ -658,40 +696,40 @@ export default function Dashboard() {
               <div className="p-4 rounded-2xl transition-all duration-500 group-hover:shadow-xl group-hover:scale-110" style={{backgroundColor: '#93a57b'}}>
                 <Clock className="h-7 w-7 text-white" />
               </div>
-              <h2 className="text-3xl font-bold ml-6 transition-all duration-500" style={{color: darkModeStyles.text}}>
+              <h2 className="text-3xl font-bold ml-6 transition-all duration-500" style={{color: styles.text}}>
                 Suggestions
               </h2>
             </div>
-            <div className="transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.3)'}}>
-              {aiSuggestions.length > 0 ? (
-                <div className="p-8">
-                  <div className="flex items-center justify-center mb-6">
-                    <Clock className="h-8 w-8 mr-3" style={{color: '#93a57b'}} />
-                    <p className="text-xl font-bold" style={{color: darkModeStyles.text}}>AI-Generated Suggestions</p>
-                  </div>
-                  <div className="space-y-4">
-                    {aiSuggestions.map((suggestion, index) => (
-                      <div key={index} className="p-4 rounded-lg border" style={{backgroundColor: isDarkMode ? 'rgba(147, 165, 123, 0.1)' : 'rgba(147, 165, 123, 0.05)', borderColor: isDarkMode ? 'rgba(147, 165, 123, 0.3)' : 'rgba(147, 165, 123, 0.2)'}}>
-                        <p className="text-sm font-medium" style={{color: darkModeStyles.text}}>
-                          {suggestion}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-20 transition-all duration-500 group-hover:opacity-90">
-                  <Clock className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#93a57b'}} />
-                  <p className="text-2xl font-bold mb-4" style={{color: darkModeStyles.text}}>Personalized Recommendations</p>
-                  <p className="text-lg opacity-80" style={{color: darkModeStyles.textSecondary}}>
-                    {viewMode === 'daily' 
-                      ? 'Get daily tips to optimize your productivity and well-being' 
-                      : 'Get weekly recommendations to improve your work-life balance'
-                    }
-                  </p>
-                </div>
-              )}
-            </div>
+             <div className="transition-all duration-500 group-hover:shadow-2xl backdrop-blur-sm rounded-2xl border relative overflow-hidden" style={{backgroundColor: 'rgba(255, 255, 255, 0.9)', borderColor: 'rgba(255, 255, 255, 0.3)'}}>
+               {aiSuggestions.length > 0 ? (
+                 <div className="p-8">
+                   <div className="flex items-center justify-center mb-6">
+                     <Clock className="h-8 w-8 mr-3" style={{color: '#93a57b'}} />
+                     <p className="text-xl font-bold" style={{color: styles.text}}>AI-Generated Suggestions</p>
+                   </div>
+                   <div className="space-y-4">
+                     {aiSuggestions.map((suggestion, index) => (
+                       <div key={index} className="p-4 rounded-lg border" style={{backgroundColor: 'rgba(147, 165, 123, 0.05)', borderColor: 'rgba(147, 165, 123, 0.2)'}}>
+                         <p className="text-sm font-medium" style={{color: styles.text}}>
+                           {suggestion}
+                         </p>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               ) : (
+                 <div className="text-center py-20 transition-all duration-500 group-hover:opacity-90">
+                   <Clock className="h-20 w-20 mx-auto mb-8 opacity-60 transition-all duration-500 group-hover:scale-110" style={{color: '#93a57b'}} />
+                   <p className="text-2xl font-bold mb-4" style={{color: styles.text}}>Personalized Recommendations</p>
+                   <p className="text-lg opacity-80" style={{color: styles.textSecondary}}>
+                     {viewMode === 'daily' 
+                       ? 'Get daily tips to optimize your productivity and well-being' 
+                       : 'Get weekly recommendations to improve your work-life balance'
+                     }
+                   </p>
+                 </div>
+               )}
+             </div>
           </div>
         </div>
 
@@ -763,6 +801,149 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* Enhanced AI Generation Buttons */}
+        <div className="mb-8">
+          <div className="flex justify-center gap-6">
+            {/* AI Insights Button */}
+            <motion.button
+              onClick={generateAiInsights}
+              disabled={isGeneratingInsights || !token || !emotionData}
+              className={`relative overflow-hidden px-8 py-5 rounded-2xl font-semibold transition-all duration-500 ease-out transform ${
+                isGeneratingInsights || !token || !emotionData
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : ''
+              }`}
+              whileHover={!isGeneratingInsights && token && emotionData ? { 
+                scale: 1.05,
+                y: -3
+              } : {}}
+              whileTap={!isGeneratingInsights && token && emotionData ? { scale: 0.95 } : {}}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              style={{
+                backgroundImage: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #c084fc 100%)',
+                color: '#ffffff',
+                boxShadow: '0 10px 30px rgba(139, 92, 246, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+              }}
+              title={!token ? 'Please login to generate insights' : !emotionData ? 'No data available for insights' : 'Generate AI-powered insights from your productivity data'}
+            >
+              {/* Animated background */}
+              <motion.div
+                className="absolute inset-0 opacity-0"
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, #c084fc 0%, #8b5cf6 50%, #a855f7 100%)'
+                }}
+                whileHover={{ opacity: 0.8 }}
+                transition={{ duration: 0.3 }}
+              />
+              
+              {/* Sparkle effect */}
+              <motion.div
+                className="absolute top-2 right-2 w-2 h-2 rounded-full bg-white"
+                animate={{
+                  scale: [1, 1.5, 1],
+                  opacity: [0.5, 1, 0.5]
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }}
+              />
+              
+              <div className="relative z-10 flex items-center">
+                <motion.div
+                  animate={isGeneratingInsights ? { rotate: 360 } : { rotate: 0 }}
+                  transition={{ duration: 1, repeat: isGeneratingInsights ? Infinity : 0 }}
+                >
+                  <Brain className="h-6 w-6 mr-4" />
+                </motion.div>
+                <span className="text-lg">
+                  {isGeneratingInsights ? 'Generating Insights...' : 'Generate AI Insights'}
+                </span>
+              </div>
+              
+              {/* Loading animation */}
+              {isGeneratingInsights && (
+                <motion.div
+                  className="absolute bottom-0 left-0 h-1 bg-white rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                />
+              )}
+            </motion.button>
+            
+            {/* AI Suggestions Button */}
+            <motion.button
+              onClick={generateAiSuggestions}
+              disabled={isGeneratingSuggestions || !token || !emotionData}
+              className={`relative overflow-hidden px-8 py-5 rounded-2xl font-semibold transition-all duration-500 ease-out transform ${
+                isGeneratingSuggestions || !token || !emotionData
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : ''
+              }`}
+              whileHover={!isGeneratingSuggestions && token && emotionData ? { 
+                scale: 1.05,
+                y: -3
+              } : {}}
+              whileTap={!isGeneratingSuggestions && token && emotionData ? { scale: 0.95 } : {}}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              style={{
+                backgroundImage: 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)',
+                color: '#ffffff',
+                boxShadow: '0 10px 30px rgba(16, 185, 129, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+              }}
+              title={!token ? 'Please login to generate suggestions' : !emotionData ? 'No data available for suggestions' : 'Generate AI-powered suggestions to improve your workflow'}
+            >
+              {/* Animated background */}
+              <motion.div
+                className="absolute inset-0 opacity-0"
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, #6ee7b7 0%, #10b981 50%, #34d399 100%)'
+                }}
+                whileHover={{ opacity: 0.8 }}
+                transition={{ duration: 0.3 }}
+              />
+              
+              {/* Sparkle effect */}
+              <motion.div
+                className="absolute top-2 right-2 w-2 h-2 rounded-full bg-white"
+                animate={{
+                  scale: [1, 1.5, 1],
+                  opacity: [0.5, 1, 0.5]
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }}
+              />
+              
+              <div className="relative z-10 flex items-center">
+                <motion.div
+                  animate={isGeneratingSuggestions ? { rotate: 360 } : { rotate: 0 }}
+                  transition={{ duration: 1, repeat: isGeneratingSuggestions ? Infinity : 0 }}
+                >
+                  <Clock className="h-6 w-6 mr-4" />
+                </motion.div>
+                <span className="text-lg">
+                  {isGeneratingSuggestions ? 'Generating Suggestions...' : 'Generate AI Suggestions'}
+                </span>
+              </div>
+              
+              {/* Loading animation */}
+              {isGeneratingSuggestions && (
+                <motion.div
+                  className="absolute bottom-0 left-0 h-1 bg-white rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                />
+              )}
+            </motion.button>
+          </div>
+        </div>
       </main>
     </div>
   );

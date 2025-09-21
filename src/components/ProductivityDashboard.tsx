@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TrendingUp, AlertTriangle, Lightbulb, CheckCircle, Brain } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TimeRangeData {
   name: string;
@@ -14,7 +15,6 @@ interface TimeRangeData {
 
 interface ProductivityDashboardProps {
   timeRangeData: TimeRangeData[];
-  isDarkMode?: boolean;
   viewMode?: 'daily' | 'weekly';
 }
 
@@ -26,7 +26,6 @@ interface Insight {
 
 const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({ 
   timeRangeData, 
-  isDarkMode = false,
   viewMode = 'daily'
 }) => {
   const [hoveredPeriod, setHoveredPeriod] = useState<string | null>(null);
@@ -143,11 +142,11 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
     
     switch (type) {
       case 'positive':
-        return `${baseStyles} ${isDarkMode ? 'bg-green-900/20 border border-green-800' : 'bg-green-50 border border-green-200'}`;
+        return `${baseStyles} bg-green-50 border border-green-200`;
       case 'warning':
-        return `${baseStyles} ${isDarkMode ? 'bg-yellow-900/20 border border-yellow-800' : 'bg-yellow-50 border border-yellow-200'}`;
+        return `${baseStyles} bg-yellow-50 border border-yellow-200`;
       case 'tip':
-        return `${baseStyles} ${isDarkMode ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`;
+        return `${baseStyles} bg-blue-50 border border-blue-200`;
       default:
         return baseStyles;
     }
@@ -170,7 +169,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
     <div key={`dashboard-${viewMode}`} className="grid lg:grid-cols-2 gap-8">
       {/* Heatmap Chart */}
       <div>
-        <h3 className="text-2xl font-bold mb-6" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
+        <h3 className="text-2xl font-bold mb-6" style={{color: '#2c423f'}}>
           Productivity Heatmap
         </h3>
         
@@ -197,7 +196,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                 <div className="flex justify-between items-center">
                   <h4 className={`font-semibold transition-all duration-300 ${
                     isHovered ? 'text-lg' : 'text-base'
-                  }`} style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
+                  }`} style={{color: '#2c423f'}}>
                     {range.name}
                   </h4>
                 </div>
@@ -205,7 +204,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                 {/* Heatmap Bar */}
                 <div className={`relative rounded-lg overflow-hidden shadow-lg transition-all duration-500 ease-out ${
                   isHovered ? 'h-16 shadow-2xl' : 'h-12'
-                }`} style={{backgroundColor: isDarkMode ? '#374151' : '#f3f4f6'}}>
+                }`} style={{backgroundColor: '#f3f4f6'}}>
                   {/* Focused Segment */}
                   <div 
                     key={`focused-${range.name}-${viewMode}`}
@@ -254,7 +253,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                 {/* Mini Legend */}
                 <div className={`flex justify-between text-xs transition-all duration-300 ${
                   isHovered ? 'opacity-100' : 'opacity-70'
-                }`} style={{color: isDarkMode ? '#a0a0a0' : '#93a57b'}}>
+                }`} style={{color: '#93a57b'}}>
                   <span className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded transition-all duration-300" style={{backgroundColor: '#677d61'}}></div>
                     <span>Focused: {Math.round(focused)}%</span>
@@ -276,7 +275,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
       
       {/* Insights Panel */}
       <div>
-        <h3 className="text-2xl font-bold mb-6" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
+        <h3 className="text-2xl font-bold mb-6" style={{color: '#2c423f'}}>
           Your Productivity Highlights
         </h3>
         
@@ -286,7 +285,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
               <div className={`flex-shrink-0 ${getInsightIconColor(insight.type)}`}>
                 {insight.icon}
               </div>
-              <p className="text-sm font-medium" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
+              <p className="text-sm font-medium" style={{color: '#2c423f'}}>
                 {insight.text}
               </p>
             </div>

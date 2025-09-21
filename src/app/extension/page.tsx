@@ -1,291 +1,432 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, Settings, Bell, Camera, Sun, Moon, BarChart3, CheckCircle, Shield, Zap } from 'lucide-react';
+import { ArrowLeft, Download, Settings, Bell, Camera, Sun, Moon, CheckCircle, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
-import Logo from '@/components/Logo';
+import LogoButton from '@/components/LogoButton';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ExtensionPage() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  // Dark mode styles
-  const darkModeStyles = {
-    background: isDarkMode ? '#1a1a1a' : '#ffffff',
-    text: isDarkMode ? '#ffffff' : '#2c423f',
-    textSecondary: isDarkMode ? '#a0a0a0' : '#93a57b',
-    cardBackground: isDarkMode ? '#2d2d2d' : '#f8f9fa',
-    border: isDarkMode ? '#404040' : '#93a57b',
-    navBackground: isDarkMode ? '#2d2d2d' : '#ffffff'
-  };
+  // Track mouse position for interactive effects
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   return (
-    <div className="min-h-screen transition-all duration-1000 ease-out" style={{backgroundColor: darkModeStyles.background}}>
-      {/* Navigation Bar */}
-      <nav className="shadow-sm border-b transition-all duration-500" style={{backgroundColor: darkModeStyles.navBackground, borderColor: darkModeStyles.border}}>
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {/* Left side - Logo */}
-            <Link href="/" className="static-logo transition-all duration-300 hover:scale-105">
-              <Logo variant="intention-ai" />
-            </Link>
-            
-            {/* Right side - Navigation items and Dark Mode Toggle */}
-            <div className="flex items-center space-x-6">
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-2 rounded-lg transition-all duration-300 hover:scale-110 hover:rotate-12"
-                style={{backgroundColor: darkModeStyles.cardBackground}}
-              >
-                {isDarkMode ? (
-                  <Sun className="h-5 w-5" style={{color: darkModeStyles.text}} />
-                ) : (
-                  <Moon className="h-5 w-5" style={{color: darkModeStyles.text}} />
-                )}
-              </button>
-              
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="transition-all duration-300 hover:scale-105" style={{color: darkModeStyles.text}}>
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Dashboard
-                </Button>
-              </Link>
-              <Link href="/settings">
-                <Button variant="ghost" size="sm" className="transition-all duration-300 hover:scale-105" style={{color: darkModeStyles.text}}>
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="container mx-auto px-4 py-8 animate-in fade-in-50 duration-700">
-        <div className="max-w-6xl mx-auto">
-          {/* Hero Section */}
-          <div className="text-center mb-16">
-            <div className="w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-8 transition-all duration-500 hover:scale-110" style={{backgroundColor: '#677d61'}}>
-              <Download className="h-16 w-16 text-white" />
-            </div>
-            <h1 className="text-5xl font-bold mb-6 transition-all duration-500" style={{color: darkModeStyles.text}}>
-              Download intention.ai Extension
-            </h1>
-            <p className="text-xl mb-8 max-w-3xl mx-auto" style={{color: darkModeStyles.textSecondary}}>
-              Install our Chrome extension to start monitoring your emotions and receiving AI-powered productivity suggestions in real-time.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/dashboard">
-                <Button 
-                  size="lg" 
-                  className="px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105"
-                  style={{backgroundColor: '#677d61', color: '#ffffff'}}
-                >
-                  <BarChart3 className="h-6 w-6 mr-3" />
-                  View Dashboard
-                </Button>
-              </Link>
-              <Link href="/">
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105"
-                  style={{borderColor: darkModeStyles.border, color: darkModeStyles.text}}
-                >
-                  <ArrowLeft className="h-6 w-6 mr-3" />
-                  Back to Home
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          <div className="space-y-16">
-            {/* Installation Steps Section */}
-            <div 
-              className={`transition-all duration-500 ease-out ${
-                hoveredSection === 'installation' ? 'transform scale-102' : ''
-              }`}
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0">
+        {/* Gradient Background */}
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)'
+          }}
+          animate={{
+            background: [
+              'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+              'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 50%, #f8fafc 100%)',
+              'linear-gradient(135deg, #cbd5e1 0%, #f8fafc 50%, #e2e8f0 100%)',
+              'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)'
+            ]
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+        
+        {/* Floating Particles */}
+        {[...Array(25)].map((_, i) => {
+          // Use deterministic positions based on index to avoid hydration mismatch
+          const left = (i * 11.5) % 100;
+          const top = (i * 19.2) % 100;
+          const duration = 4 + (i % 3) * 0.5;
+          const delay = (i % 4) * 0.75;
+          
+          return (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 rounded-full opacity-30"
               style={{
-                opacity: hoveredSection && hoveredSection !== 'installation' ? 0.6 : 1,
-                filter: hoveredSection && hoveredSection !== 'installation' ? 'blur(1px)' : 'none'
+                background: '#677d61',
+                left: `${left}%`,
+                top: `${top}%`,
               }}
-              onMouseEnter={() => setHoveredSection('installation')}
-              onMouseLeave={() => setHoveredSection(null)}
+              animate={{
+                y: [0, -100, 0],
+                opacity: [0.3, 0.8, 0.3],
+                scale: [0.5, 1, 0.5]
+              }}
+              transition={{
+                duration: duration,
+                repeat: Infinity,
+                delay: delay
+              }}
+            />
+          );
+        })}
+        
+        {/* Interactive Mouse Follower */}
+        <motion.div
+          className="absolute w-96 h-96 rounded-full opacity-20 pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle, rgba(103, 125, 97, 0.2) 0%, transparent 70%)',
+            left: mousePosition.x - 192,
+            top: mousePosition.y - 192,
+          }}
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.1, 0.3, 0.1]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            repeatType: "reverse"
+          }}
+        />
+      </div>
+
+      {/* Navigation Bar */}
+      <motion.nav
+        className="relative z-10 flex justify-between items-center p-8 backdrop-blur-sm"
+        style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+      >
+        <LogoButton size="lg" />
+        
+        <div className="flex items-center space-x-6">
+          <Link href="/settings">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <div className="flex items-center mb-8">
-                <div className="p-4 rounded-full transition-all duration-300" style={{backgroundColor: '#677d61'}}>
-                  <Settings className="h-8 w-8 text-white" />
-                </div>
-                <div className="ml-6">
-                  <h2 className="text-3xl font-bold" style={{color: darkModeStyles.text}}>Installation Guide</h2>
-                  <p className="text-lg" style={{color: darkModeStyles.textSecondary}}>Follow these simple steps to get started</p>
-                </div>
+              <Button 
+                variant="outline" 
+                className="backdrop-blur-sm"
+                style={{ 
+                  color: '#677d61', 
+                  borderColor: '#93a57b',
+                  backgroundColor: 'rgba(147, 165, 123, 0.1)'
+                }}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+            </motion.div>
+          </Link>
+        </div>
+      </motion.nav>
+
+      {/* Main Content */}
+      <div className="relative z-10 min-h-screen">
+        <div className="max-w-6xl mx-auto px-8 py-16">
+          {/* Hero Section */}
+          <motion.div
+            className="text-center mb-20"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.2 }}
+          >
+            <motion.div
+              className="w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-8 relative overflow-hidden"
+              style={{backgroundColor: '#677d61'}}
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              animate={{
+                boxShadow: [
+                  '0 0 20px rgba(103, 125, 97, 0.3)',
+                  '0 0 40px rgba(103, 125, 97, 0.6)',
+                  '0 0 20px rgba(103, 125, 97, 0.3)'
+                ]
+              }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              <Download className="h-16 w-16 text-white relative z-10" />
+              
+              {/* Sparkle effect */}
+              <motion.div
+                className="absolute top-2 right-2 w-3 h-3 rounded-full bg-white/60"
+                animate={{
+                  scale: [1, 1.5, 1],
+                  opacity: [0.6, 1, 0.6]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }}
+              />
+            </motion.div>
+            
+            <motion.h1
+              className="text-5xl md:text-6xl font-bold mb-6"
+              style={{ color: '#2c423f' }}
+              whileHover={{ scale: 1.02 }}
+            >
+              Download{' '}
+              <span
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, #677d61 0%, #93a57b 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  color: 'transparent'
+                }}
+              >
+                intention.ai
+              </span>{' '}
+              Extension
+            </motion.h1>
+            
+            <motion.p
+              className="text-xl mb-12 max-w-3xl mx-auto leading-relaxed"
+              style={{ color: '#93a57b' }}
+              whileHover={{ scale: 1.01 }}
+            >
+              Install our Chrome extension to start monitoring your emotions and receiving AI-powered productivity suggestions in real-time.
+            </motion.p>
+            
+            <motion.div
+              className="flex flex-col sm:flex-row gap-6 justify-center"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+            >
+              <Link href="/">
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="px-12 py-6 text-lg font-semibold rounded-2xl backdrop-blur-sm"
+                    style={{
+                      color: '#677d61', 
+                      borderColor: '#93a57b',
+                      backgroundColor: 'rgba(147, 165, 123, 0.1)'
+                    }}
+                  >
+                    <ArrowLeft className="h-6 w-6 mr-3" />
+                    Back to Home
+                  </Button>
+                </motion.div>
+              </Link>
+            </motion.div>
+          </motion.div>
+
+          {/* Installation Steps Section */}
+          <motion.div
+            className="mb-20"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            viewport={{ once: true }}
+          >
+            <motion.div
+              className="flex items-center mb-12"
+              whileHover={{ x: 10 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <motion.div
+                className="p-4 rounded-full mr-6"
+                style={{backgroundColor: '#677d61'}}
+                whileHover={{ scale: 1.1, rotate: 5 }}
+              >
+                <Settings className="h-8 w-8 text-white" />
+              </motion.div>
+              <div>
+                <motion.h2
+                  className="text-4xl font-bold mb-2"
+                  style={{color: '#2c423f'}}
+                  whileHover={{ scale: 1.02 }}
+                >
+                  Installation Guide
+                </motion.h2>
+                <motion.p
+                  className="text-xl"
+                  style={{color: '#93a57b'}}
+                  whileHover={{ scale: 1.01 }}
+                >
+                  Follow these simple steps to get started
+                </motion.p>
+              </div>
+            </motion.div>
+            
+            <div className="grid md:grid-cols-2 gap-12">
+              <div className="space-y-6">
+                {[
+                  { step: 1, title: "Download Extension", desc: "Download the extension files from the project repository" },
+                  { step: 2, title: "Open Chrome Extensions", desc: "Go to chrome://extensions/ in your browser" },
+                  { step: 3, title: "Enable Developer Mode", desc: "Toggle 'Developer mode' in the top right corner" },
+                  { step: 4, title: "Load Unpacked", desc: "Click 'Load unpacked' and select the chrome-extension folder" }
+                ].map((item, index) => (
+                  <motion.div
+                    key={index}
+                    className="flex items-start space-x-4 p-6 rounded-2xl backdrop-blur-sm transition-all duration-300"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      border: '1px solid rgba(147, 165, 123, 0.2)'
+                    }}
+                    whileHover={{ 
+                      scale: 1.02,
+                      y: -5,
+                      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)'
+                    }}
+                    initial={{ opacity: 0, x: -50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                  >
+                    <motion.div
+                      className="rounded-full w-12 h-12 flex items-center justify-center flex-shrink-0"
+                      style={{backgroundColor: '#677d61'}}
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                    >
+                      <span className="text-lg font-bold text-white">{item.step}</span>
+                    </motion.div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2" style={{color: '#2c423f'}}>{item.title}</h3>
+                      <p className="text-base" style={{color: '#93a57b'}}>{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
               
-              <div className="grid md:grid-cols-2 gap-8">
+              <motion.div
+                className="p-8 rounded-2xl backdrop-blur-sm"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  border: '1px solid rgba(147, 165, 123, 0.2)'
+                }}
+                whileHover={{ scale: 1.02 }}
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                viewport={{ once: true }}
+              >
+                <h3 className="text-2xl font-semibold mb-8" style={{color: '#2c423f'}}>Quick Start</h3>
                 <div className="space-y-6">
                   {[
-                    { step: 1, title: "Download Extension", desc: "Download the extension files from the project repository" },
-                    { step: 2, title: "Open Chrome Extensions", desc: "Go to chrome://extensions/ in your browser" },
-                    { step: 3, title: "Enable Developer Mode", desc: "Toggle 'Developer mode' in the top right corner" },
-                    { step: 4, title: "Load Unpacked", desc: "Click 'Load unpacked' and select the chrome-extension folder" }
+                    { text: "Files located in chrome-extension/ folder", code: "chrome-extension/" },
+                    { text: "No additional downloads required", code: null },
+                    { text: "Works immediately after installation", code: null }
                   ].map((item, index) => (
-                    <div key={index} className="flex items-start space-x-4 p-4 rounded-xl transition-all duration-300 hover:scale-105" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                      <div className="rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 transition-all duration-300" style={{backgroundColor: '#677d61'}}>
-                        <span className="text-lg font-bold text-white">{item.step}</span>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2" style={{color: darkModeStyles.text}}>{item.title}</h3>
-                        <p className="text-base" style={{color: darkModeStyles.textSecondary}}>{item.desc}</p>
-                      </div>
-                    </div>
+                    <motion.div
+                      key={index}
+                      className="flex items-center space-x-4"
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      viewport={{ once: true }}
+                    >
+                      <motion.div
+                        whileHover={{ scale: 1.2 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        <CheckCircle className="h-6 w-6" style={{color: '#677d61'}} />
+                      </motion.div>
+                      <span style={{color: '#2c423f'}}>
+                        {item.text}
+                        {item.code && (
+                          <code className="px-3 py-1 rounded-lg text-sm ml-2" style={{backgroundColor: '#f8fafc', color: '#677d61'}}>
+                            {item.code}
+                          </code>
+                        )}
+                      </span>
+                    </motion.div>
                   ))}
                 </div>
-                
-                <div className="p-8 rounded-xl" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <h3 className="text-xl font-semibold mb-6" style={{color: darkModeStyles.text}}>Quick Start</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <CheckCircle className="h-6 w-6" style={{color: '#677d61'}} />
-                      <span style={{color: darkModeStyles.text}}>Files located in <code className="px-2 py-1 rounded text-sm" style={{backgroundColor: '#bfcc94', color: '#2c423f'}}>chrome-extension/</code> folder</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <CheckCircle className="h-6 w-6" style={{color: '#677d61'}} />
-                      <span style={{color: darkModeStyles.text}}>No additional downloads required</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <CheckCircle className="h-6 w-6" style={{color: '#677d61'}} />
-                      <span style={{color: darkModeStyles.text}}>Works immediately after installation</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              </motion.div>
             </div>
+          </motion.div>
 
-            {/* Divider */}
-            <div className="h-px w-full" style={{backgroundColor: darkModeStyles.border}}></div>
-
-            {/* Features Section */}
-            <div 
-              className={`transition-all duration-500 ease-out ${
-                hoveredSection === 'features' ? 'transform scale-102' : ''
-              }`}
-              style={{
-                opacity: hoveredSection && hoveredSection !== 'features' ? 0.6 : 1,
-                filter: hoveredSection && hoveredSection !== 'features' ? 'blur(1px)' : 'none'
-              }}
-              onMouseEnter={() => setHoveredSection('features')}
-              onMouseLeave={() => setHoveredSection(null)}
+          {/* Features Section */}
+          <motion.div
+            className="mb-20"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            viewport={{ once: true }}
+          >
+            <motion.div
+              className="flex items-center mb-12"
+              whileHover={{ x: 10 }}
+              transition={{ type: "spring", stiffness: 300 }}
             >
-              <div className="flex items-center mb-8">
-                <div className="p-4 rounded-full transition-all duration-300" style={{backgroundColor: '#93a57b'}}>
-                  <Zap className="h-8 w-8 text-white" />
-                </div>
-                <div className="ml-6">
-                  <h2 className="text-3xl font-bold" style={{color: darkModeStyles.text}}>Extension Features</h2>
-                  <p className="text-lg" style={{color: darkModeStyles.textSecondary}}>Powerful tools for productivity enhancement</p>
-                </div>
+              <motion.div
+                className="p-4 rounded-full mr-6"
+                style={{backgroundColor: '#93a57b'}}
+                whileHover={{ scale: 1.1, rotate: 5 }}
+              >
+                <Zap className="h-8 w-8 text-white" />
+              </motion.div>
+              <div>
+                <motion.h2
+                  className="text-4xl font-bold mb-2"
+                  style={{color: '#2c423f'}}
+                  whileHover={{ scale: 1.02 }}
+                >
+                  Extension Features
+                </motion.h2>
+                <motion.p
+                  className="text-xl"
+                  style={{color: '#93a57b'}}
+                  whileHover={{ scale: 1.01 }}
+                >
+                  Powerful tools for productivity enhancement
+                </motion.p>
               </div>
-              
-              <div className="grid md:grid-cols-3 gap-8">
-                <div className="p-6 rounded-xl transition-all duration-300 hover:scale-105" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{backgroundColor: '#677d61'}}>
-                    <Camera className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3" style={{color: darkModeStyles.text}}>Webcam Monitoring</h3>
-                  <p className="text-base" style={{color: darkModeStyles.textSecondary}}>Continuous emotion detection via webcam with privacy-first approach</p>
-                </div>
-                
-                <div className="p-6 rounded-xl transition-all duration-300 hover:scale-105" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{backgroundColor: '#fffd7a'}}>
-                    <Bell className="h-6 w-6 text-black" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3" style={{color: darkModeStyles.text}}>Smart Notifications</h3>
-                  <p className="text-base" style={{color: darkModeStyles.textSecondary}}>AI-powered productivity suggestions delivered at optimal times</p>
-                </div>
-                
-                <div className="p-6 rounded-xl transition-all duration-300 hover:scale-105" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{backgroundColor: '#93a57b'}}>
-                    <Shield className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3" style={{color: darkModeStyles.text}}>Privacy Focused</h3>
-                  <p className="text-base" style={{color: darkModeStyles.textSecondary}}>All data processed locally with customizable privacy settings</p>
-                </div>
-              </div>
+            </motion.div>
+            
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                { icon: Camera, title: "Webcam Monitoring", desc: "Continuous emotion detection via webcam with privacy-first approach", color: '#677d61' },
+                { icon: Bell, title: "Smart Notifications", desc: "AI-powered productivity suggestions delivered at optimal times", color: '#93a57b' },
+                { icon: Shield, title: "Privacy Focused", desc: "All data processed locally with customizable privacy settings", color: '#677d61' }
+              ].map((feature, index) => (
+                <motion.div
+                  key={index}
+                  className="p-8 rounded-2xl backdrop-blur-sm transition-all duration-300"
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                    border: '1px solid rgba(147, 165, 123, 0.2)'
+                  }}
+                  whileHover={{ 
+                    scale: 1.05,
+                    y: -10,
+                    boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)'
+                  }}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  <motion.div
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
+                    style={{backgroundColor: feature.color}}
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                  >
+                    <feature.icon className="h-8 w-8 text-white" />
+                  </motion.div>
+                  <h3 className="text-xl font-semibold mb-4" style={{color: '#2c423f'}}>{feature.title}</h3>
+                  <p className="text-base leading-relaxed" style={{color: '#93a57b'}}>{feature.desc}</p>
+                </motion.div>
+              ))}
             </div>
-
-            {/* Divider */}
-            <div className="h-px w-full" style={{backgroundColor: darkModeStyles.border}}></div>
-
-            {/* Technical Details Section */}
-            <div 
-              className={`transition-all duration-500 ease-out ${
-                hoveredSection === 'technical' ? 'transform scale-102' : ''
-              }`}
-              style={{
-                opacity: hoveredSection && hoveredSection !== 'technical' ? 0.6 : 1,
-                filter: hoveredSection && hoveredSection !== 'technical' ? 'blur(1px)' : 'none'
-              }}
-              onMouseEnter={() => setHoveredSection('technical')}
-              onMouseLeave={() => setHoveredSection(null)}
-            >
-              <div className="flex items-center mb-8">
-                <div className="p-4 rounded-full transition-all duration-300" style={{backgroundColor: '#fffd7a'}}>
-                  <Settings className="h-8 w-8 text-black" />
-                </div>
-                <div className="ml-6">
-                  <h2 className="text-3xl font-bold" style={{color: darkModeStyles.text}}>Technical Details</h2>
-                  <p className="text-lg" style={{color: darkModeStyles.textSecondary}}>Requirements and specifications</p>
-                </div>
-              </div>
-              
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="p-6 rounded-xl" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <h3 className="text-xl font-semibold mb-6" style={{color: darkModeStyles.text}}>Permissions Required</h3>
-                  <div className="space-y-4">
-                    {[
-                      { perm: "Storage", desc: "Save user settings and preferences" },
-                      { perm: "Notifications", desc: "Show productivity suggestions" },
-                      { perm: "Active Tab", desc: "Access current tab for context" },
-                      { perm: "Scripting", desc: "Inject content scripts for monitoring" }
-                    ].map((item, index) => (
-                      <div key={index} className="flex items-center space-x-3">
-                        <div className="w-2 h-2 rounded-full" style={{backgroundColor: '#677d61'}}></div>
-                        <div>
-                          <span className="font-medium" style={{color: darkModeStyles.text}}>{item.perm}</span>
-                          <span className="text-sm ml-2" style={{color: darkModeStyles.textSecondary}}>- {item.desc}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="p-6 rounded-xl" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <h3 className="text-xl font-semibold mb-6" style={{color: darkModeStyles.text}}>System Requirements</h3>
-                  <div className="space-y-4">
-                    {[
-                      { req: "Chrome Browser", desc: "Version 88 or higher" },
-                      { req: "Webcam Access", desc: "Required for emotion detection" },
-                      { req: "Internet Connection", desc: "For AI processing and updates" },
-                      { req: "Developer Mode", desc: "Enabled for installation" }
-                    ].map((item, index) => (
-                      <div key={index} className="flex items-center space-x-3">
-                        <div className="w-2 h-2 rounded-full" style={{backgroundColor: '#93a57b'}}></div>
-                        <div>
-                          <span className="font-medium" style={{color: darkModeStyles.text}}>{item.req}</span>
-                          <span className="text-sm ml-2" style={{color: darkModeStyles.textSecondary}}>- {item.desc}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          </motion.div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
