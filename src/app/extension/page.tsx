@@ -2,58 +2,43 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, Settings, Bell, Camera, Sun, Moon, BarChart3, CheckCircle, Shield, Zap } from 'lucide-react';
+import { ArrowLeft, Download, Settings, Bell, Camera, BarChart3, CheckCircle, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
-import Logo from '@/components/Logo';
+import LogoButton from '@/components/LogoButton';
+import { motion } from 'framer-motion';
 
 export default function ExtensionPage() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
 
-  // Dark mode styles
-  const darkModeStyles = {
-    background: isDarkMode ? '#1a1a1a' : '#ffffff',
-    text: isDarkMode ? '#ffffff' : '#2c423f',
-    textSecondary: isDarkMode ? '#a0a0a0' : '#93a57b',
-    cardBackground: isDarkMode ? '#2d2d2d' : '#f8f9fa',
-    border: isDarkMode ? '#404040' : '#93a57b',
-    navBackground: isDarkMode ? '#2d2d2d' : '#ffffff'
+  // Consistent styling to match landing/login pages
+  const styles = {
+    background: '#ffffff',
+    text: '#2c423f',
+    textSecondary: '#93a57b',
+    cardBackground: '#f8f9fa',
+    border: '#93a57b',
+    navBackground: '#ffffff'
   };
 
   return (
-    <div className="min-h-screen transition-all duration-1000 ease-out" style={{backgroundColor: darkModeStyles.background}}>
+    <div className="min-h-screen transition-all duration-1000 ease-out" style={{backgroundColor: styles.background}}>
       {/* Navigation Bar */}
-      <nav className="shadow-sm border-b transition-all duration-500" style={{backgroundColor: darkModeStyles.navBackground, borderColor: darkModeStyles.border}}>
+      <nav className="shadow-sm border-b transition-all duration-500" style={{backgroundColor: styles.navBackground, borderColor: styles.border}}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Left side - Logo */}
-            <Link href="/" className="static-logo transition-all duration-300 hover:scale-105">
-              <Logo variant="intention-ai" />
-            </Link>
+            <LogoButton size="md" />
             
-            {/* Right side - Navigation items and Dark Mode Toggle */}
+            {/* Right side - Navigation items */}
             <div className="flex items-center space-x-6">
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-2 rounded-lg transition-all duration-300 hover:scale-110 hover:rotate-12"
-                style={{backgroundColor: darkModeStyles.cardBackground}}
-              >
-                {isDarkMode ? (
-                  <Sun className="h-5 w-5" style={{color: darkModeStyles.text}} />
-                ) : (
-                  <Moon className="h-5 w-5" style={{color: darkModeStyles.text}} />
-                )}
-              </button>
-              
               <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="transition-all duration-300 hover:scale-105" style={{color: darkModeStyles.text}}>
+                <Button variant="ghost" size="sm" className="transition-all duration-300 hover:scale-105" style={{color: styles.text}}>
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Dashboard
                 </Button>
               </Link>
               <Link href="/settings">
-                <Button variant="ghost" size="sm" className="transition-all duration-300 hover:scale-105" style={{color: darkModeStyles.text}}>
+                <Button variant="ghost" size="sm" className="transition-all duration-300 hover:scale-105" style={{color: styles.text}}>
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </Button>
@@ -65,45 +50,108 @@ export default function ExtensionPage() {
 
       <main className="container mx-auto px-4 py-8 animate-in fade-in-50 duration-700">
         <div className="max-w-6xl mx-auto">
-          {/* Hero Section */}
-          <div className="text-center mb-16">
-            <div className="w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-8 transition-all duration-500 hover:scale-110" style={{backgroundColor: '#677d61'}}>
-              <Download className="h-16 w-16 text-white" />
+          {/* Hero Section with Animated Background */}
+          <div className="relative text-center mb-16 overflow-hidden rounded-3xl p-12" style={{backgroundColor: '#bfcc94'}}>
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0">
+              {/* Gradient Background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-green-100 via-green-50 to-green-200"></div>
+              
+              {/* Floating Blobs */}
+              <motion.div
+                className="absolute top-10 left-10 w-24 h-24 rounded-full opacity-20"
+                style={{background: 'linear-gradient(135deg, #677d61, #93a57b)'}}
+                animate={{
+                  y: [0, -15, 0],
+                  x: [0, 8, 0],
+                  scale: [1, 1.1, 1],
+                }}
+                transition={{
+                  duration: 6,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              <motion.div
+                className="absolute top-20 right-16 w-16 h-16 rounded-full opacity-15"
+                style={{background: 'linear-gradient(135deg, #fffd7a, #93a57b)'}}
+                animate={{
+                  y: [0, 12, 0],
+                  x: [0, -12, 0],
+                  scale: [1, 0.9, 1],
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 1
+                }}
+              />
+              <motion.div
+                className="absolute bottom-16 left-16 w-12 h-12 rounded-full opacity-10"
+                style={{background: 'linear-gradient(135deg, #93a57b, #677d61)'}}
+                animate={{
+                  y: [0, -20, 0],
+                  x: [0, 15, 0],
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{
+                  duration: 10,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 2
+                }}
+              />
             </div>
-            <h1 className="text-5xl font-bold mb-6 transition-all duration-500" style={{color: darkModeStyles.text}}>
-              Download intention.ai Extension
-            </h1>
-            <p className="text-xl mb-8 max-w-3xl mx-auto" style={{color: darkModeStyles.textSecondary}}>
-              Install our Chrome extension to start monitoring your emotions and receiving AI-powered productivity suggestions in real-time.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/dashboard">
-                <Button 
-                  size="lg" 
-                  className="px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105"
-                  style={{backgroundColor: '#677d61', color: '#ffffff'}}
+
+            {/* Content */}
+            <div className="relative z-10">
+              <motion.div 
+                className="w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-8 transition-all duration-500 hover:scale-110" 
+                style={{backgroundColor: '#677d61'}}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <Download className="h-16 w-16 text-white" />
+              </motion.div>
+              
+              <motion.h1 
+                className="text-5xl font-bold mb-6 transition-all duration-500" 
+                style={{color: styles.text}}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+              >
+                <span 
+                  className="bg-gradient-to-r from-green-600 via-green-500 to-blue-600 bg-clip-text text-transparent hover:from-green-700 hover:to-blue-700 transition-all duration-500 cursor-default"
+                  style={{
+                    background: 'linear-gradient(135deg, #677d61, #93a57b, #fffd7a)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}
                 >
-                  <BarChart3 className="h-6 w-6 mr-3" />
-                  View Dashboard
-                </Button>
-              </Link>
-              <Link href="/">
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105"
-                  style={{borderColor: darkModeStyles.border, color: darkModeStyles.text}}
-                >
-                  <ArrowLeft className="h-6 w-6 mr-3" />
-                  Back to Home
-                </Button>
-              </Link>
+                  intention.ai Extension
+                </span>
+              </motion.h1>
+              
+              <motion.p 
+                className="text-xl mb-8 max-w-3xl mx-auto" 
+                style={{color: styles.textSecondary}}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+              >
+                Install our Chrome extension to start monitoring your emotions and receiving AI-powered productivity suggestions in real-time.
+              </motion.p>
+              
             </div>
           </div>
 
           <div className="space-y-16">
             {/* Installation Steps Section */}
-            <div 
+            <motion.div 
               className={`transition-all duration-500 ease-out ${
                 hoveredSection === 'installation' ? 'transform scale-102' : ''
               }`}
@@ -113,14 +161,17 @@ export default function ExtensionPage() {
               }}
               onMouseEnter={() => setHoveredSection('installation')}
               onMouseLeave={() => setHoveredSection(null)}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
             >
               <div className="flex items-center mb-8">
                 <div className="p-4 rounded-full transition-all duration-300" style={{backgroundColor: '#677d61'}}>
                   <Settings className="h-8 w-8 text-white" />
                 </div>
                 <div className="ml-6">
-                  <h2 className="text-3xl font-bold" style={{color: darkModeStyles.text}}>Installation Guide</h2>
-                  <p className="text-lg" style={{color: darkModeStyles.textSecondary}}>Follow these simple steps to get started</p>
+                  <h2 className="text-3xl font-bold" style={{color: styles.text}}>Installation Guide</h2>
+                  <p className="text-lg" style={{color: styles.textSecondary}}>Follow these simple steps to get started</p>
                 </div>
               </div>
               
@@ -132,43 +183,43 @@ export default function ExtensionPage() {
                     { step: 3, title: "Enable Developer Mode", desc: "Toggle 'Developer mode' in the top right corner" },
                     { step: 4, title: "Load Unpacked", desc: "Click 'Load unpacked' and select the chrome-extension folder" }
                   ].map((item, index) => (
-                    <div key={index} className="flex items-start space-x-4 p-4 rounded-xl transition-all duration-300 hover:scale-105" style={{backgroundColor: darkModeStyles.cardBackground}}>
+                    <div key={index} className="flex items-start space-x-4 p-4 rounded-xl transition-all duration-300 hover:scale-105" style={{backgroundColor: styles.cardBackground}}>
                       <div className="rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 transition-all duration-300" style={{backgroundColor: '#677d61'}}>
                         <span className="text-lg font-bold text-white">{item.step}</span>
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold mb-2" style={{color: darkModeStyles.text}}>{item.title}</h3>
-                        <p className="text-base" style={{color: darkModeStyles.textSecondary}}>{item.desc}</p>
+                        <h3 className="text-lg font-semibold mb-2" style={{color: styles.text}}>{item.title}</h3>
+                        <p className="text-base" style={{color: styles.textSecondary}}>{item.desc}</p>
                       </div>
                     </div>
                   ))}
                 </div>
                 
-                <div className="p-8 rounded-xl" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <h3 className="text-xl font-semibold mb-6" style={{color: darkModeStyles.text}}>Quick Start</h3>
+                <div className="p-8 rounded-xl" style={{backgroundColor: styles.cardBackground}}>
+                  <h3 className="text-xl font-semibold mb-6" style={{color: styles.text}}>Quick Start</h3>
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="h-6 w-6" style={{color: '#677d61'}} />
-                      <span style={{color: darkModeStyles.text}}>Files located in <code className="px-2 py-1 rounded text-sm" style={{backgroundColor: '#bfcc94', color: '#2c423f'}}>chrome-extension/</code> folder</span>
+                      <span style={{color: styles.text}}>Files located in <code className="px-2 py-1 rounded text-sm" style={{backgroundColor: '#bfcc94', color: '#2c423f'}}>chrome-extension/</code> folder</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="h-6 w-6" style={{color: '#677d61'}} />
-                      <span style={{color: darkModeStyles.text}}>No additional downloads required</span>
+                      <span style={{color: styles.text}}>No additional downloads required</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="h-6 w-6" style={{color: '#677d61'}} />
-                      <span style={{color: darkModeStyles.text}}>Works immediately after installation</span>
+                      <span style={{color: styles.text}}>Works immediately after installation</span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Divider */}
-            <div className="h-px w-full" style={{backgroundColor: darkModeStyles.border}}></div>
+            <div className="h-px w-full" style={{backgroundColor: styles.border}}></div>
 
             {/* Features Section */}
-            <div 
+            <motion.div 
               className={`transition-all duration-500 ease-out ${
                 hoveredSection === 'features' ? 'transform scale-102' : ''
               }`}
@@ -178,49 +229,88 @@ export default function ExtensionPage() {
               }}
               onMouseEnter={() => setHoveredSection('features')}
               onMouseLeave={() => setHoveredSection(null)}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
             >
               <div className="flex items-center mb-8">
                 <div className="p-4 rounded-full transition-all duration-300" style={{backgroundColor: '#93a57b'}}>
                   <Zap className="h-8 w-8 text-white" />
                 </div>
                 <div className="ml-6">
-                  <h2 className="text-3xl font-bold" style={{color: darkModeStyles.text}}>Extension Features</h2>
-                  <p className="text-lg" style={{color: darkModeStyles.textSecondary}}>Powerful tools for productivity enhancement</p>
+                  <h2 className="text-3xl font-bold" style={{color: styles.text}}>Extension Features</h2>
+                  <p className="text-lg" style={{color: styles.textSecondary}}>Powerful tools for productivity enhancement</p>
                 </div>
               </div>
               
               <div className="grid md:grid-cols-3 gap-8">
-                <div className="p-6 rounded-xl transition-all duration-300 hover:scale-105" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{backgroundColor: '#677d61'}}>
+                <motion.div 
+                  className="p-6 rounded-xl transition-all duration-300 hover:scale-105" 
+                  style={{backgroundColor: styles.cardBackground}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.5 }}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                >
+                  <motion.div 
+                    className="w-12 h-12 rounded-full flex items-center justify-center mb-4" 
+                    style={{backgroundColor: '#677d61'}}
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
+                  >
                     <Camera className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3" style={{color: darkModeStyles.text}}>Webcam Monitoring</h3>
-                  <p className="text-base" style={{color: darkModeStyles.textSecondary}}>Continuous emotion detection via webcam with privacy-first approach</p>
-                </div>
+                  </motion.div>
+                  <h3 className="text-xl font-semibold mb-3" style={{color: styles.text}}>Webcam Monitoring</h3>
+                  <p className="text-base" style={{color: styles.textSecondary}}>Continuous emotion detection via webcam with privacy-first approach</p>
+                </motion.div>
                 
-                <div className="p-6 rounded-xl transition-all duration-300 hover:scale-105" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{backgroundColor: '#fffd7a'}}>
+                <motion.div 
+                  className="p-6 rounded-xl transition-all duration-300 hover:scale-105" 
+                  style={{backgroundColor: styles.cardBackground}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.7 }}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                >
+                  <motion.div 
+                    className="w-12 h-12 rounded-full flex items-center justify-center mb-4" 
+                    style={{backgroundColor: '#fffd7a'}}
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
+                  >
                     <Bell className="h-6 w-6 text-black" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3" style={{color: darkModeStyles.text}}>Smart Notifications</h3>
-                  <p className="text-base" style={{color: darkModeStyles.textSecondary}}>AI-powered productivity suggestions delivered at optimal times</p>
-                </div>
+                  </motion.div>
+                  <h3 className="text-xl font-semibold mb-3" style={{color: styles.text}}>Smart Notifications</h3>
+                  <p className="text-base" style={{color: styles.textSecondary}}>AI-powered productivity suggestions delivered at optimal times</p>
+                </motion.div>
                 
-                <div className="p-6 rounded-xl transition-all duration-300 hover:scale-105" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{backgroundColor: '#93a57b'}}>
+                <motion.div 
+                  className="p-6 rounded-xl transition-all duration-300 hover:scale-105" 
+                  style={{backgroundColor: styles.cardBackground}}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.9 }}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                >
+                  <motion.div 
+                    className="w-12 h-12 rounded-full flex items-center justify-center mb-4" 
+                    style={{backgroundColor: '#93a57b'}}
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
+                  >
                     <Shield className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3" style={{color: darkModeStyles.text}}>Privacy Focused</h3>
-                  <p className="text-base" style={{color: darkModeStyles.textSecondary}}>All data processed locally with customizable privacy settings</p>
-                </div>
+                  </motion.div>
+                  <h3 className="text-xl font-semibold mb-3" style={{color: styles.text}}>Privacy Focused</h3>
+                  <p className="text-base" style={{color: styles.textSecondary}}>All data processed locally with customizable privacy settings</p>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Divider */}
-            <div className="h-px w-full" style={{backgroundColor: darkModeStyles.border}}></div>
+            <div className="h-px w-full" style={{backgroundColor: styles.border}}></div>
 
             {/* Technical Details Section */}
-            <div 
+            <motion.div 
               className={`transition-all duration-500 ease-out ${
                 hoveredSection === 'technical' ? 'transform scale-102' : ''
               }`}
@@ -230,20 +320,23 @@ export default function ExtensionPage() {
               }}
               onMouseEnter={() => setHoveredSection('technical')}
               onMouseLeave={() => setHoveredSection(null)}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
             >
               <div className="flex items-center mb-8">
                 <div className="p-4 rounded-full transition-all duration-300" style={{backgroundColor: '#fffd7a'}}>
                   <Settings className="h-8 w-8 text-black" />
                 </div>
                 <div className="ml-6">
-                  <h2 className="text-3xl font-bold" style={{color: darkModeStyles.text}}>Technical Details</h2>
-                  <p className="text-lg" style={{color: darkModeStyles.textSecondary}}>Requirements and specifications</p>
+                  <h2 className="text-3xl font-bold" style={{color: styles.text}}>Technical Details</h2>
+                  <p className="text-lg" style={{color: styles.textSecondary}}>Requirements and specifications</p>
                 </div>
               </div>
               
               <div className="grid md:grid-cols-2 gap-8">
-                <div className="p-6 rounded-xl" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <h3 className="text-xl font-semibold mb-6" style={{color: darkModeStyles.text}}>Permissions Required</h3>
+                <div className="p-6 rounded-xl" style={{backgroundColor: styles.cardBackground}}>
+                  <h3 className="text-xl font-semibold mb-6" style={{color: styles.text}}>Permissions Required</h3>
                   <div className="space-y-4">
                     {[
                       { perm: "Storage", desc: "Save user settings and preferences" },
@@ -254,16 +347,16 @@ export default function ExtensionPage() {
                       <div key={index} className="flex items-center space-x-3">
                         <div className="w-2 h-2 rounded-full" style={{backgroundColor: '#677d61'}}></div>
                         <div>
-                          <span className="font-medium" style={{color: darkModeStyles.text}}>{item.perm}</span>
-                          <span className="text-sm ml-2" style={{color: darkModeStyles.textSecondary}}>- {item.desc}</span>
+                          <span className="font-medium" style={{color: styles.text}}>{item.perm}</span>
+                          <span className="text-sm ml-2" style={{color: styles.textSecondary}}>- {item.desc}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
                 
-                <div className="p-6 rounded-xl" style={{backgroundColor: darkModeStyles.cardBackground}}>
-                  <h3 className="text-xl font-semibold mb-6" style={{color: darkModeStyles.text}}>System Requirements</h3>
+                <div className="p-6 rounded-xl" style={{backgroundColor: styles.cardBackground}}>
+                  <h3 className="text-xl font-semibold mb-6" style={{color: styles.text}}>System Requirements</h3>
                   <div className="space-y-4">
                     {[
                       { req: "Chrome Browser", desc: "Version 88 or higher" },
@@ -274,15 +367,15 @@ export default function ExtensionPage() {
                       <div key={index} className="flex items-center space-x-3">
                         <div className="w-2 h-2 rounded-full" style={{backgroundColor: '#93a57b'}}></div>
                         <div>
-                          <span className="font-medium" style={{color: darkModeStyles.text}}>{item.req}</span>
-                          <span className="text-sm ml-2" style={{color: darkModeStyles.textSecondary}}>- {item.desc}</span>
+                          <span className="font-medium" style={{color: styles.text}}>{item.req}</span>
+                          <span className="text-sm ml-2" style={{color: styles.textSecondary}}>- {item.desc}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </main>

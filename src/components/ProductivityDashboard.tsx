@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { TrendingUp, AlertTriangle, Lightbulb, CheckCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, AlertTriangle, Lightbulb, CheckCircle, Brain } from 'lucide-react';
 
 interface TimeRangeData {
@@ -167,7 +169,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
   };
   
   return (
-    <div key={`dashboard-${viewMode}`} className="grid lg:grid-cols-2 gap-8">
+    <div className="grid lg:grid-cols-2 gap-8">
       {/* Heatmap Chart */}
       <div>
         <h3 className="text-2xl font-bold mb-6" style={{color: isDarkMode ? '#ffffff' : '#2c423f'}}>
@@ -175,14 +177,23 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
         </h3>
         
         <div className="space-y-6">
-          {timeRangeData.map((range, index) => {
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              className="space-y-6"
+            >
+              {timeRangeData.map((range, index) => {
             const totalHours = range.hours;
             const { focused, tired, stressed } = range.emotions;
             const isHovered = hoveredPeriod === range.name;
             const isOtherHovered = hoveredPeriod && hoveredPeriod !== range.name;
             
             return (
-              <div 
+              <motion.div 
                 key={`${range.name}-${viewMode}`}
                 className={`space-y-3 transition-all duration-500 ease-out cursor-pointer ${
                   isHovered ? 'transform scale-105' : ''
@@ -193,6 +204,9 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                 }}
                 onMouseEnter={() => setHoveredPeriod(range.name)}
                 onMouseLeave={() => setHoveredPeriod(null)}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
               >
                 <div className="flex justify-between items-center">
                   <h4 className={`font-semibold transition-all duration-300 ${
@@ -207,48 +221,54 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                   isHovered ? 'h-16 shadow-2xl' : 'h-12'
                 }`} style={{backgroundColor: isDarkMode ? '#374151' : '#f3f4f6'}}>
                   {/* Focused Segment */}
-                  <div 
+                  <motion.div 
                     key={`focused-${range.name}-${viewMode}`}
                     className="absolute left-0 top-0 h-full flex items-center justify-center text-white text-xs font-medium hover:opacity-90"
                     style={{
                       width: `${(focused / totalHours) * 100}%`,
                       backgroundColor: '#677d61', // Our green
-                      transition: 'width 1000ms ease-out, left 1000ms ease-out'
                     }}
                     title={`Focused: ${Math.round(focused)}h`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(focused / totalHours) * 100}%` }}
+                    transition={{ duration: 0.8, delay: index * 0.1 + 0.2, ease: "easeOut" }}
                   >
                     {focused > 0 && focused >= 1.5 && `${Math.round(focused)}h`}
-                  </div>
+                  </motion.div>
                   
                   {/* Tired Segment */}
-                  <div 
+                  <motion.div 
                     key={`tired-${range.name}-${viewMode}`}
                     className="absolute top-0 h-full flex items-center justify-center text-white text-xs font-medium hover:opacity-90"
                     style={{
                       left: `${(focused / totalHours) * 100}%`,
                       width: `${(tired / totalHours) * 100}%`,
                       backgroundColor: '#93a57b', // Our medium green
-                      transition: 'width 1000ms ease-out, left 1000ms ease-out'
                     }}
                     title={`Tired: ${Math.round(tired)}h`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(tired / totalHours) * 100}%` }}
+                    transition={{ duration: 0.8, delay: index * 0.1 + 0.3, ease: "easeOut" }}
                   >
                     {tired > 0 && tired >= 1.5 && `${Math.round(tired)}h`}
-                  </div>
+                  </motion.div>
                   
                   {/* Stressed Segment */}
-                  <div 
+                  <motion.div 
                     key={`stressed-${range.name}-${viewMode}`}
                     className="absolute top-0 h-full flex items-center justify-center text-black text-xs font-medium hover:opacity-90"
                     style={{
                       left: `${((focused + tired) / totalHours) * 100}%`,
                       width: `${(stressed / totalHours) * 100}%`,
                       backgroundColor: '#fffd7a', // Our yellow
-                      transition: 'width 1000ms ease-out, left 1000ms ease-out'
                     }}
                     title={`Stressed: ${Math.round(stressed)}h`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(stressed / totalHours) * 100}%` }}
+                    transition={{ duration: 0.8, delay: index * 0.1 + 0.4, ease: "easeOut" }}
                   >
                     {stressed > 0 && stressed >= 1.5 && `${Math.round(stressed)}h`}
-                  </div>
+                  </motion.div>
                 </div>
                 
                 {/* Mini Legend */}
@@ -268,9 +288,11 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
                     <span>Stressed: {Math.round(stressed)}h</span>
                   </span>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
       

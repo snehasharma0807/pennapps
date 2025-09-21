@@ -4,9 +4,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BarChart3, Brain, Clock, Calendar, TrendingUp, Settings, Moon, Sun } from 'lucide-react';
 import Link from 'next/link';
+import LogoButton from '@/components/LogoButton';
+import { motion } from 'framer-motion';
+// import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
 import ProductivityDashboard from '@/components/ProductivityDashboard';
-import Logo from '@/components/Logo';
 
 export default function Dashboard() {
   // const { user, isLoading } = useUser();
@@ -427,10 +429,8 @@ export default function Dashboard() {
       <nav className="shadow-sm border-b transition-all duration-500 backdrop-blur-sm relative z-10" style={{backgroundColor: darkModeStyles.navBackground, borderColor: darkModeStyles.border}}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="hover:opacity-80 transition-opacity">
-                <span className="text-2xl font-bold" style={{color: '#2c423f'}}>intention.ai</span>
-              </Link>
+            <div className="flex items-center space-x-3">
+              <LogoButton size="md" isDarkMode={isDarkMode} />
               <h1 className="text-2xl font-bold" style={{color: darkModeStyles.text}}>Dashboard</h1>
             </div>
             
@@ -479,7 +479,7 @@ export default function Dashboard() {
           
           {/* View Toggle */}
           <div className="flex rounded-xl p-1 backdrop-blur-sm shadow-lg border transition-all duration-500" style={{backgroundColor: isDarkMode ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}}>
-            <button
+            <motion.button
               onClick={() => setViewMode('daily')}
               className={`px-6 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
                 viewMode === 'daily' 
@@ -491,12 +491,15 @@ export default function Dashboard() {
                 color: viewMode === 'daily' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151'),
                 boxShadow: viewMode === 'daily' ? '0 10px 25px rgba(103, 125, 97, 0.3)' : 'none'
               }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.2 }}
               title={!token ? 'Please login to refresh data' : 'Refresh emotion data from Chrome extension'}
             >
               <Calendar className="h-4 w-4 mr-2 inline" style={{color: viewMode === 'daily' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151')}} />
               Daily
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => setViewMode('weekly')}
               className={`px-6 py-3 rounded-lg font-semibold transition-all duration-500 ease-out transform ${
                 viewMode === 'weekly' 
@@ -508,9 +511,13 @@ export default function Dashboard() {
                 color: viewMode === 'weekly' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151'),
                 boxShadow: viewMode === 'weekly' ? '0 10px 25px rgba(103, 125, 97, 0.3)' : 'none'
               }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.2 }}
             >
               <TrendingUp className="h-4 w-4 mr-2 inline" style={{color: viewMode === 'weekly' ? '#ffffff' : (isDarkMode ? '#e5e5e5' : '#374151')}} />
               Weekly
+            </motion.button>
             </button>
 
 

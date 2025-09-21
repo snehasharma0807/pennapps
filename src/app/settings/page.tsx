@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings, Bell, User, Trash2, Save, AlertTriangle, Moon, Sun, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
+import LogoButton from '@/components/LogoButton';
 // import { useUser } from '@auth0/nextjs-auth0/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -271,7 +272,10 @@ export default function SettingsPage() {
       <header className="shadow-sm border-b transition-all duration-500" style={{backgroundColor: darkModeStyles.navBackground, borderColor: darkModeStyles.border}}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold" style={{color: darkModeStyles.text}}>Settings</h1>
+            <div className="flex items-center space-x-3">
+              <LogoButton size="md" isDarkMode={isDarkMode} />
+              <h1 className="text-2xl font-bold" style={{color: darkModeStyles.text}}>Settings</h1>
+            </div>
             
             <div className="flex items-center space-x-4">
               <Button

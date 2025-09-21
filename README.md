@@ -91,6 +91,18 @@ Visit `http://localhost:3000` to see the website.
 └── README.md
 ```
 
+## Logos
+
+All branding logos should be placed in `/public/logos/`. These are referenced in code via `/logos/logo1.png`, `/logos/logo2.png`, etc.
+
+### Logo Files
+- `logo1.png` - intention.ai with cube
+- `logo2.png` - intentionalai
+- `logo3.png` - intentional
+- `logo4.png` - intentional highlighted
+
+You can replace the placeholder files with the actual PNGs.
+
 ## API Endpoints
 
 - `POST /api/emotions` - Record emotion event
