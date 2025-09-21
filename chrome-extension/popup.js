@@ -3,30 +3,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Get UI elements
   const webcamToggle = document.getElementById('webcam-toggle');
   const notificationsToggle = document.getElementById('notifications-toggle');
+  const notificationInterval = document.getElementById('notification-interval');
   const openDashboardBtn = document.getElementById('open-dashboard');
-  
-  // Authentication elements
-  const authCard = document.getElementById('auth-card');
-  const authStatus = document.getElementById('auth-status');
-  const authMessage = document.getElementById('auth-message');
-  const authToken = document.getElementById('auth-token');
-  const authLogin = document.getElementById('auth-login');
-  
-  // Current emotion display elements
-  const currentEmotionCard = document.getElementById('current-emotion-card');
-  const currentEmotionEmoji = document.getElementById('current-emotion-emoji');
-  const currentEmotionName = document.getElementById('current-emotion-name');
-  const currentEmotionTime = document.getElementById('current-emotion-time');
-  const emotionConfidence = document.getElementById('emotion-confidence');
+  const testNotificationBtn = document.getElementById('test-notification');
+  const statusIndicator = document.getElementById('status-indicator');
+  const webcamStatus = document.getElementById('webcam-status');
+  const lastDetection = document.getElementById('last-detection');
+  const recentEmotions = document.getElementById('recent-emotions');
+  const emotionsCount = document.getElementById('emotions-count');
 
   // Load saved settings
   const settings = await chrome.storage.sync.get({
     webcamEnabled: false,
     notificationsEnabled: true,
-    lastEmotions: [],
-    userToken: null,
-    userId: null,
-    userEmail: null
+    notificationInterval: 15,
+    lastEmotions: []
   });
 
   // Update UI with saved settings
@@ -36,16 +27,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (settings.notificationsEnabled) {
     notificationsToggle.classList.add('active');
   }
+  notificationInterval.value = settings.notificationInterval;
 
-  // Update authentication UI with stored credentials
-  console.log('🔐 Loading stored authentication settings:', {
-    hasToken: !!settings.userToken,
-    hasEmail: !!settings.userEmail,
-    hasUserId: !!settings.userId
-  });
-  updateAuthUI(settings);
-
-  
+  updateStatus();
+  updateRecentEmotions(settings.lastEmotions);
 
   // Add loading states and enhanced interactions
   openDashboardBtn.addEventListener('click', async () => {
@@ -53,7 +38,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     openDashboardBtn.disabled = true;
     
     try {
-      await chrome.tabs.create({ url: 'http://localhost:3000/dashboard' });
+      // Use the configuration system to get the correct URL
+      const dashboardUrl = window.WORKFLOW_CONFIG.getUrl(window.WORKFLOW_CONFIG.endpoints.dashboard);
+      await chrome.tabs.create({ url: dashboardUrl });
     } catch (error) {
       console.error('Failed to open dashboard:', error);
       openDashboardBtn.innerHTML = '❌ Failed to open';
@@ -64,14 +51,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  testNotificationBtn.addEventListener('click', async () => {
+    testNotificationBtn.innerHTML = '⏳ Testing...';
+    testNotificationBtn.disabled = true;
+    
+    try {
+      await chrome.runtime.sendMessage({ action: 'testNotification' });
+      testNotificationBtn.innerHTML = '✅ Sent!';
+      setTimeout(() => {
+        testNotificationBtn.innerHTML = '🔔 Test Notification';
+        testNotificationBtn.disabled = false;
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to send test notification:', error);
+      testNotificationBtn.innerHTML = '❌ Failed';
+      setTimeout(() => {
+        testNotificationBtn.innerHTML = '🔔 Test Notification';
+        testNotificationBtn.disabled = false;
+      }, 2000);
+    }
+  });
 
+  notificationInterval.addEventListener('change', async (e) => {
+    await chrome.storage.sync.set({ notificationInterval: parseInt(e.target.value) });
+  });
 
-
-
-
+  // Enhanced status indicator with animations
+  function updateStatus() {
+    const webcamEnabled = webcamToggle.classList.contains('active');
+    
+    if (webcamEnabled) {
+      statusIndicator.className = 'status-indicator status-active';
+      statusIndicator.innerHTML = `
+        <div class="status-dot"></div>
+        <span>Active</span>
+      `;
+      webcamStatus.textContent = 'Active';
+      webcamStatus.style.color = '#059669';
+    } else {
+      statusIndicator.className = 'status-indicator status-inactive';
+      statusIndicator.innerHTML = `
+        <div class="status-dot"></div>
+        <span>Inactive</span>
+      `;
+      webcamStatus.textContent = 'Not active';
+      webcamStatus.style.color = '#dc2626';
+    }
+  }
 
   // Enhanced toggle functions with haptic feedback simulation
-  async function toggleWebcam() {
+  window.toggleWebcam = async function() {
     const enabled = !webcamToggle.classList.contains('active');
     
     // Add visual feedback
@@ -90,9 +119,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       chrome.runtime.sendMessage({ action: 'stopWebcam' });
     }
     
-  }
+    updateStatus();
+  };
 
-  async function toggleNotifications() {
+  window.toggleNotifications = async function() {
     const enabled = !notificationsToggle.classList.contains('active');
     
     // Add visual feedback
@@ -108,46 +138,50 @@ document.addEventListener('DOMContentLoaded', async () => {
       notificationsToggle.classList.remove('active');
       await chrome.storage.sync.set({ notificationsEnabled: false });
     }
-  }
+  };
 
-  // Add event listeners for the toggles
-  webcamToggle.addEventListener('click', toggleWebcam);
-  notificationsToggle.addEventListener('click', toggleNotifications);
-
-  // Update current emotion display
-  function updateCurrentEmotion(emotion) {
-    if (!emotion) {
-      currentEmotionCard.style.display = 'none';
+  // Enhanced recent emotions display with better formatting
+  function updateRecentEmotions(emotions) {
+    emotionsCount.textContent = emotions.length;
+    
+    if (emotions.length === 0) {
+      recentEmotions.innerHTML = '<div class="no-data">No recent data available</div>';
       return;
     }
 
-    const emojiMap = {
-      focused: '🎯',
-      tired: '😴',
-      stressed: '😰',
-      happy: '😊',
-      sad: '😢',
-      angry: '😠',
-      surprised: '😲',
-      neutral: '😐'
-    };
+    const emotionsHtml = emotions.slice(0, 5).map(emotion => {
+      const time = new Date(emotion.timestamp).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      
+      const emojiMap = {
+        focused: '🎯',
+        tired: '😴',
+        stressed: '😰',
+        happy: '😊',
+        sad: '😢',
+        angry: '😠',
+        surprised: '😲',
+        neutral: '😐'
+      };
+      
+      const emoji = emojiMap[emotion.emotion] || '🤔';
+      const colorClass = `emotion-${emotion.emotion}`;
 
-    const emoji = emojiMap[emotion.emotion] || '🤔';
-    const time = new Date(emotion.timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-    const confidence = Math.round((emotion.confidence || 0.7) * 100);
+      return `
+        <div class="emotion-item">
+          <div class="emotion-info">
+            <span class="emotion-emoji">${emoji}</span>
+            <span class="emotion-name ${colorClass}">${emotion.emotion}</span>
+          </div>
+          <span class="emotion-time">${time}</span>
+        </div>
+      `;
+    }).join('');
 
-    currentEmotionEmoji.textContent = emoji;
-    currentEmotionName.textContent = emotion.emotion;
-    currentEmotionName.className = `emotion-name-large emotion-${emotion.emotion}`;
-    currentEmotionTime.textContent = time;
-    emotionConfidence.textContent = `${confidence}%`;
-
-    currentEmotionCard.style.display = 'block';
+    recentEmotions.innerHTML = emotionsHtml;
   }
-
 
   // Add smooth animations for card interactions
   const cards = document.querySelectorAll('.card');
@@ -161,88 +195,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Auto-refresh status every 2 seconds when popup is open for more responsive updates
-  const statusRefreshInterval = setInterval(async () => {
-    await updateDetectionStatus();
-  }, 2000);
-
-  // Clean up interval when popup closes
-  window.addEventListener('beforeunload', () => {
-    clearInterval(statusRefreshInterval);
-  });
-
   // Listen for updates from background script
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('📨 Popup received message:', message);
+    if (message.action === 'updateRecentEmotions') {
+      updateRecentEmotions(message.emotions);
+    }
     
-    
-    
-    if (message.action === 'emotionDetected') {
-      console.log('🎭 Real-time emotion update received:', message);
-      
-      // Update current emotion display immediately
-      updateCurrentEmotion({
-        emotion: message.emotion,
-        confidence: message.confidence,
-        timestamp: message.timestamp
-      });
-      
-      
-      // Show a visual indicator that emotion was detected
-      showEmotionDetectionIndicator(message.emotion);
+    if (message.action === 'updateStatus') {
+      updateStatus();
     }
   });
-
-  // Show visual indicator when emotion is detected
-  function showEmotionDetectionIndicator(emotion) {
-    // Create a temporary indicator
-    const indicator = document.createElement('div');
-    indicator.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      z-index: 10000;
-      animation: slideIn 0.3s ease-out;
-    `;
-    
-    const emojiMap = {
-      focused: '🎯',
-      tired: '😴',
-      stressed: '😰',
-      happy: '😊',
-      sad: '😢',
-      angry: '😠',
-      surprised: '😲',
-      neutral: '😐'
-    };
-    
-    indicator.textContent = `${emojiMap[emotion] || '🤔'} ${emotion.toUpperCase()}`;
-    
-    // Add CSS animation
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    document.body.appendChild(indicator);
-    
-    // Remove after 2 seconds
-    setTimeout(() => {
-      if (indicator.parentNode) {
-        indicator.parentNode.removeChild(indicator);
-      }
-    }, 2000);
-  }
 
   // Add keyboard shortcuts
   document.addEventListener('keydown', (e) => {
@@ -252,13 +214,17 @@ document.addEventListener('DOMContentLoaded', async () => {
           e.preventDefault();
           openDashboardBtn.click();
           break;
+        case 't':
+          e.preventDefault();
+          testNotificationBtn.click();
+          break;
         case 'w':
           e.preventDefault();
-          webcamToggle.click();
+          toggleWebcam();
           break;
         case 'n':
           e.preventDefault();
-          notificationsToggle.click();
+          toggleNotifications();
           break;
       }
     }
@@ -269,6 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'webcam-toggle': 'Toggle webcam monitoring (Ctrl+W)',
     'notifications-toggle': 'Toggle notifications (Ctrl+N)',
     'open-dashboard': 'Open dashboard (Ctrl+D)',
+    'test-notification': 'Test notification (Ctrl+T)'
   };
 
   Object.entries(tooltips).forEach(([id, text]) => {
@@ -277,130 +244,4 @@ document.addEventListener('DOMContentLoaded', async () => {
       element.title = text;
     }
   });
-
-  // Authentication functions
-  function updateAuthUI(settings) {
-    console.log('🔐 updateAuthUI called with settings:', {
-      hasToken: !!settings.userToken,
-      hasEmail: !!settings.userEmail,
-      tokenLength: settings.userToken?.length || 0
-    });
-    
-    if (settings.userToken && settings.userEmail) {
-      authStatus.textContent = 'Connected';
-      authStatus.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-      authMessage.textContent = `Connected as ${settings.userEmail}`;
-      authToken.style.display = 'none';
-      authLogin.innerHTML = '🔓 Disconnect';
-      authLogin.onclick = disconnectAccount;
-    } else {
-      authStatus.textContent = 'Not connected';
-      authStatus.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-      authMessage.textContent = 'Please log in to sync your emotion data';
-      authToken.style.display = 'block';
-      authLogin.innerHTML = '🔐 Connect Account';
-      authLogin.onclick = connectAccount;
-    }
-  }
-
-  async function connectAccount() {
-    const token = authToken.value.trim();
-    if (!token) {
-      authMessage.textContent = 'Please enter a valid JWT token';
-      authMessage.style.color = '#dc2626';
-      return;
-    }
-
-    authLogin.innerHTML = '⏳ Connecting...';
-    authLogin.disabled = true;
-
-    try {
-      const response = await fetch('http://localhost:3000/api/extension-auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ token })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('🔐 Storing authentication data:', {
-          tokenLength: token.length,
-          userId: data.user.id,
-          userEmail: data.user.email
-        });
-        
-        await chrome.storage.sync.set({
-          userToken: token,
-          userId: data.user.id,
-          userEmail: data.user.email
-        });
-        
-        console.log('🔐 Authentication data stored successfully');
-        
-        authMessage.textContent = `Connected as ${data.user.email}`;
-        authMessage.style.color = '#059669';
-        authToken.value = '';
-        updateAuthUI({ userToken: token, userEmail: data.user.email });
-        
-        // Show success indicator
-        showSuccessIndicator('Account connected successfully!');
-      } else {
-        throw new Error('Authentication failed');
-      }
-    } catch (error) {
-      console.error('Authentication error:', error);
-      authMessage.textContent = 'Failed to connect. Please check your token.';
-      authMessage.style.color = '#dc2626';
-    } finally {
-      authLogin.innerHTML = '🔐 Connect Account';
-      authLogin.disabled = false;
-    }
-  }
-
-  async function disconnectAccount() {
-    await chrome.storage.sync.remove(['userToken', 'userId', 'userEmail']);
-    updateAuthUI({});
-    authMessage.textContent = 'Please log in to sync your emotion data';
-    authMessage.style.color = '#6b7280';
-    showSuccessIndicator('Account disconnected');
-  }
-
-  function showSuccessIndicator(message) {
-    const indicator = document.createElement('div');
-    indicator.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      z-index: 10000;
-      animation: slideIn 0.3s ease-out;
-    `;
-    indicator.textContent = message;
-    
-    document.body.appendChild(indicator);
-    
-    setTimeout(() => {
-      if (indicator.parentNode) {
-        indicator.parentNode.removeChild(indicator);
-      }
-    }, 3000);
-  }
-
-  // Add event listener for auth login button
-  authLogin.addEventListener('click', connectAccount);
-
-  // Debug function to test storage (can be called from console)
-  window.testStorage = async () => {
-    console.log('🧪 Testing Chrome storage...');
-    const testData = await chrome.storage.sync.get(['userToken', 'userId', 'userEmail']);
-    console.log('🧪 Stored data:', testData);
-    return testData;
-  };
 });

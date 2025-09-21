@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, AlertTriangle, Lightbulb, CheckCircle, Brain } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Lightbulb, CheckCircle } from 'lucide-react';
 
 interface TimeRangeData {
   name: string;
@@ -34,7 +34,7 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
   const generateInsights = (data: TimeRangeData[]): Insight[] => {
     const insights: Insight[] = [];
     
-    // Calculate totals and check if we have enough data
+    // Calculate totals and percentages
     const totals = data.reduce((acc, range) => {
       acc.focused += range.emotions.focused;
       acc.tired += range.emotions.tired;
@@ -42,94 +42,82 @@ const ProductivityDashboard: React.FC<ProductivityDashboardProps> = ({
       return acc;
     }, { focused: 0, tired: 0, stressed: 0 });
     
-    const totalDetections = totals.focused + totals.tired + totals.stressed;
+    const totalHours = totals.focused + totals.tired + totals.stressed;
+    const focusedPercentage = Math.round((totals.focused / totalHours) * 100);
+    const stressedPercentage = Math.round((totals.stressed / totalHours) * 100);
     
-    // Only generate insights if we have meaningful data (at least 10 total detections)
-    if (totalDetections < 10) {
-      return [{
-        type: 'tip',
-        icon: <Lightbulb className="h-5 w-5" />,
-        text: "Keep using the extension to collect more data for meaningful insights!"
-      }];
-    }
-    
-    // Calculate overall percentages
-    const focusedPercentage = Math.round((totals.focused / totalDetections) * 100);
-    const stressedPercentage = Math.round((totals.stressed / totalDetections) * 100);
-    const tiredPercentage = Math.round((totals.tired / totalDetections) * 100);
-    
-    // Find most and least focused periods (using actual percentages from data)
+    // Find most and least focused periods
     const focusedByPeriod = data.map(range => ({
       name: range.name,
-      focused: range.emotions.focused,
-      total: range.emotions.focused + range.emotions.tired + range.emotions.stressed,
-      percentage: range.emotions.focused + range.emotions.tired + range.emotions.stressed > 0 
-        ? Math.round((range.emotions.focused / (range.emotions.focused + range.emotions.tired + range.emotions.stressed)) * 100)
-        : 0
+      percentage: Math.round((range.emotions.focused / range.hours) * 100)
     }));
     
-    // Only consider periods with actual data
-    const periodsWithData = focusedByPeriod.filter(p => p.total > 0);
+    const mostFocused = focusedByPeriod.reduce((max, current) => 
+      current.percentage > max.percentage ? current : max
+    );
     
-    if (periodsWithData.length >= 2) {
-      const mostFocused = periodsWithData.reduce((max, current) => 
-        current.percentage > max.percentage ? current : max
-      );
-      
-      const leastFocused = periodsWithData.reduce((min, current) => 
-        current.percentage < min.percentage ? current : min
-      );
-      
-      // Only show focus comparison if there's a meaningful difference (at least 15%)
-      if (mostFocused.percentage - leastFocused.percentage >= 15) {
-        const difference = mostFocused.percentage - leastFocused.percentage;
-        insights.push({
-          type: 'positive',
-          icon: <CheckCircle className="h-5 w-5" />,
-          text: `You're ${difference}% more focused in the ${mostFocused.name.toLowerCase()} (${mostFocused.percentage}%) compared to ${leastFocused.name.toLowerCase()} (${leastFocused.percentage}%).`
-        });
-      }
-    }
+    const leastFocused = focusedByPeriod.reduce((min, current) => 
+      current.percentage < min.percentage ? current : min
+    );
     
-    // Stress insights - only if stress is significantly high
-    if (stressedPercentage >= 35) {
+    // Find stress patterns
+    const stressedByPeriod = data.map(range => ({
+      name: range.name,
+      percentage: Math.round((range.emotions.stressed / range.hours) * 100)
+    }));
+    
+    const highestStress = stressedByPeriod.reduce((max, current) => 
+      current.percentage > max.percentage ? current : max
+    );
+    
+    // Generate insights based on data
+    if (mostFocused.percentage > leastFocused.percentage + 20) {
+      const difference = mostFocused.percentage - leastFocused.percentage;
       insights.push({
-        type: 'warning',
-        icon: <AlertTriangle className="h-5 w-5" />,
-        text: `High stress levels detected (${stressedPercentage}%). Consider taking more breaks or adjusting your workload.`
+        type: 'positive',
+        icon: <CheckCircle className="h-5 w-5" />,
+        text: `You are ${difference}% more focused in the ${mostFocused.name.toLowerCase()} compared to the ${leastFocused.name.toLowerCase()}.`
       });
     }
     
-    // Focus insights - only if focus is significantly high or low
-    if (focusedPercentage >= 60) {
+    if (highestStress.percentage > 30) {
+      insights.push({
+        type: 'warning',
+        icon: <AlertTriangle className="h-5 w-5" />,
+        text: `Stress spikes in the ${highestStress.name.toLowerCase()}.`
+      });
+    }
+    
+    if (leastFocused.percentage < 20) {
+      insights.push({
+        type: 'tip',
+        icon: <Lightbulb className="h-5 w-5" />,
+        text: `Avoid ${leastFocused.name.toLowerCase()} sessions: lowest productivity window.`
+      });
+    }
+    
+    if (focusedPercentage > 50) {
       insights.push({
         type: 'positive',
         icon: <TrendingUp className="h-5 w-5" />,
-        text: `Excellent focus! You're focused ${focusedPercentage}% of the time.`
-      });
-    } else if (focusedPercentage <= 25) {
-      insights.push({
-        type: 'tip',
-        icon: <Lightbulb className="h-5 w-5" />,
-        text: `Focus could be improved (${focusedPercentage}%). Try minimizing distractions during work sessions.`
+        text: `Great focus overall! You're focused ${focusedPercentage}% of the time.`
       });
     }
     
-    // Tiredness insights - only if tiredness is significantly high
-    if (tiredPercentage >= 40) {
+    if (stressedPercentage > 40) {
       insights.push({
         type: 'warning',
         icon: <AlertTriangle className="h-5 w-5" />,
-        text: `High fatigue detected (${tiredPercentage}%). Consider taking more frequent breaks or adjusting your schedule.`
+        text: `High stress levels detected (${stressedPercentage}%). Consider taking breaks.`
       });
     }
     
-    // Only show default message if no meaningful insights were generated
+    // Default insights if no specific patterns
     if (insights.length === 0) {
       insights.push({
         type: 'tip',
         icon: <Lightbulb className="h-5 w-5" />,
-        text: "Your productivity patterns look balanced. Keep tracking to identify trends over time!"
+        text: "Keep tracking your patterns to discover productivity insights!"
       });
     }
     

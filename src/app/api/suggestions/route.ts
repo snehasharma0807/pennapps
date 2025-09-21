@@ -1,119 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/password';
-import { getGeminiSuggestion } from '@/lib/gemini';
+import { getSession } from '@auth0/nextjs-auth0';
+import { getRealtimeSuggestion, getRecurringSuggestion, getAnalyticsSummary, getWeeklySuggestions } from '@/lib/gemini';
 
+// POST /api/suggestions - Get AI suggestions
 export async function POST(request: NextRequest) {
   try {
-    // Get JWT token from Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const session = await getSession();
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
-    let decoded;
-    try {
-      decoded = verifyToken(token);
-    } catch (error) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
-    }
+    const { type, emotion, timeOfDay, emotionData } = await request.json();
 
-    const { timeRangeData } = await request.json();
+    let suggestion: string;
 
-    if (!timeRangeData || !Array.isArray(timeRangeData)) {
-      return NextResponse.json({ error: 'Invalid time range data' }, { status: 400 });
-    }
-
-    // Calculate totals and percentages
-    const totals = timeRangeData.reduce((acc, range) => {
-      acc.focused += range.emotions.focused;
-      acc.tired += range.emotions.tired;
-      acc.stressed += range.emotions.stressed;
-      return acc;
-    }, { focused: 0, tired: 0, stressed: 0 });
-
-    const totalDetections = totals.focused + totals.tired + totals.stressed;
-
-    // Only generate suggestions if we have meaningful data
-    if (totalDetections < 5) {
-      return NextResponse.json({
-        suggestions: ["Keep using the extension to generate personalized workflow suggestions!"]
-      });
-    }
-
-    // Prepare data for Gemini
-    const formattedData = timeRangeData.map(range => ({
-      timePeriod: range.name,
-      focused: Math.round((range.emotions.focused / (range.emotions.focused + range.emotions.tired + range.emotions.stressed)) * 100),
-      tired: Math.round((range.emotions.tired / (range.emotions.focused + range.emotions.tired + range.emotions.stressed)) * 100),
-      stressed: Math.round((range.emotions.stressed / (range.emotions.focused + range.emotions.tired + range.emotions.stressed)) * 100)
-    }));
-
-    const overallFocused = Math.round((totals.focused / totalDetections) * 100);
-    const overallStressed = Math.round((totals.stressed / totalDetections) * 100);
-    const overallTired = Math.round((totals.tired / totalDetections) * 100);
-
-    // Create a detailed prompt for Gemini to generate actionable suggestions
-    const prompt = `Based on this productivity data from emotion tracking, generate exactly 4 actionable suggestions (exactly 1 sentence each) to improve workflow and productivity. Focus on practical, implementable recommendations.
-
-Data:
-- Overall: ${overallFocused}% focused, ${overallTired}% tired, ${overallStressed}% stressed
-- Time periods: ${JSON.stringify(formattedData, null, 2)}
-
-Generate exactly 4 suggestions about:
-1. Optimizing work schedule based on focus patterns
-2. Managing stress and energy levels
-3. Improving productivity during low-focus periods
-4. Workflow and environment improvements
-
-Format as exactly 4 bullet points, keep each suggestion to exactly 1 sentence, and make them actionable and specific.`;
-
-    try {
-      console.log('💡 Sending suggestions prompt to Gemini:', prompt.substring(0, 200) + '...');
-      const geminiResponse = await getGeminiSuggestion(prompt);
-      console.log('💡 Gemini suggestions response:', geminiResponse);
-      
-      // Parse the response into bullet points
-      let suggestions = geminiResponse
-        .split('\n')
-        .filter(line => line.trim().length > 0)
-        .map(line => line.replace(/^[-•*]\s*/, '').trim())
-        .filter(line => line.length > 10); // Filter out very short lines
-
-      // Ensure we have exactly 4 suggestions
-      if (suggestions.length > 4) {
-        suggestions = suggestions.slice(0, 4);
-      } else if (suggestions.length < 4) {
-        // If we have fewer than 4, pad with generic suggestions
-        const genericSuggestions = [
-          "Schedule your most important tasks during your peak focus hours.",
-          "Take regular breaks every 25-30 minutes to maintain energy levels.",
-          "Create a distraction-free workspace to improve concentration.",
-          "Practice stress management techniques like deep breathing or meditation."
-        ];
-        while (suggestions.length < 4) {
-          suggestions.push(genericSuggestions[suggestions.length] || "Continue experimenting with different productivity strategies.");
+    switch (type) {
+      case 'realtime':
+        if (!emotion) {
+          return NextResponse.json({ error: 'Emotion required for realtime suggestion' }, { status: 400 });
         }
-      }
-
-      console.log('📋 Parsed suggestions:', suggestions);
+        suggestion = await getRealtimeSuggestion(emotion);
+        break;
       
-      if (suggestions.length === 0) {
-        return NextResponse.json({ 
-          error: 'No suggestions could be generated from the response.' 
-        }, { status: 500 });
-      }
-
-      return NextResponse.json({ suggestions });
-    } catch (geminiError) {
-      console.error('❌ Gemini API error:', geminiError);
-      return NextResponse.json({ 
-        error: `Failed to generate suggestions: ${geminiError instanceof Error ? geminiError.message : 'Unknown error'}` 
-      }, { status: 500 });
+      case 'recurring':
+        if (!emotion || !timeOfDay) {
+          return NextResponse.json({ error: 'Emotion and timeOfDay required for recurring suggestion' }, { status: 400 });
+        }
+        suggestion = await getRecurringSuggestion(emotion, timeOfDay);
+        break;
+      
+      case 'analytics':
+        if (!emotionData) {
+          return NextResponse.json({ error: 'Emotion data required for analytics summary' }, { status: 400 });
+        }
+        suggestion = await getAnalyticsSummary(emotionData);
+        break;
+      
+      case 'weekly':
+        if (!emotionData) {
+          return NextResponse.json({ error: 'Emotion data required for weekly suggestions' }, { status: 400 });
+        }
+        suggestion = await getWeeklySuggestions(emotionData);
+        break;
+      
+      default:
+        return NextResponse.json({ error: 'Invalid suggestion type' }, { status: 400 });
     }
 
+    return NextResponse.json({ suggestion });
   } catch (error) {
-    console.error('Error generating suggestions:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error getting suggestion:', error);
+    return NextResponse.json({ 
+      error: 'Failed to generate suggestion',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
